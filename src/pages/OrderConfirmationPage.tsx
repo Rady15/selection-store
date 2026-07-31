@@ -10,9 +10,40 @@ import {
   MapPin,
   Calendar,
   Coffee,
+  ShieldCheck,
   ArrowLeft,
   ArrowRight
 } from 'lucide-react';
+
+const ORDER_STATUS_LABELS: Record<string, [string, string]> = {
+  pending: ['قيد التجهيز', 'Processing'],
+  roasting: ['قيد التحميص', 'Roasting'],
+  shipped: ['تم الشحن', 'Shipped'],
+  delivered: ['تم التوصيل', 'Delivered'],
+  cancelled: ['ملغي', 'Cancelled'],
+  paid: ['مدفوع', 'Paid']
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, [string, string]> = {
+  paid: ['مدفوع ✓', 'Paid'],
+  pending: ['قيد الدفع', 'Pending'],
+  failed: ['فشل الدفع', 'Failed']
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, [string, string]> = {
+  mada: ['مدى MADA', 'Mada'],
+  visa: ['فيزا / ماستركارد (Stripe)', 'Visa / Mastercard (Stripe)'],
+  apple_pay: ['Apple Pay (Stripe)', 'Apple Pay (Stripe)'],
+  tabby: ['تابي', 'Tabby'],
+  tamara: ['تمارا', 'Tamara'],
+  cod: ['الدفع عند الاستلام', 'Cash on Delivery']
+};
+
+const SHIPPING_METHOD_LABELS: Record<string, [string, string]> = {
+  smsa: ['SMSA Express', 'SMSA Express'],
+  aramex: ['أرامكس', 'Aramex'],
+  dhl: ['DHL', 'DHL']
+};
 
 interface OrderConfirmationPageProps {
   orderId: string;
@@ -79,21 +110,27 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
           </div>
 
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.status === 'delivered' ? 'bg-emerald-500/20 text-emerald-400' :
-                order.status === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
-                  order.status === 'roasting' ? 'bg-amber-500/20 text-amber-400' :
-                    order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                      order.status === 'paid' ? 'bg-purple-500/20 text-purple-400' :
-                        'bg-[#8C532B]/20 text-[#D99B26]'
-              }`}>
-              {order.status}
-            </span>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${order.payment_status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
-                order.payment_status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
-                  'bg-red-500/20 text-red-400'
-              }`}>
-              {order.payment_status}
-            </span>
+            <div className="inline-flex items-center gap-2 bg-[#110E0C] border border-[#2A221E] px-3 py-1.5 rounded-xl">
+              <span className="text-[10px] text-[#A69B93]">{t('حالة الطلب', 'Order')}:</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${order.status === 'delivered' ? 'bg-emerald-500/20 text-emerald-400' :
+                  order.status === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
+                    order.status === 'roasting' ? 'bg-amber-500/20 text-amber-400' :
+                      order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                        order.status === 'paid' ? 'bg-purple-500/20 text-purple-400' :
+                          'bg-[#8C532B]/20 text-[#D99B26]'
+                }`}>
+                {language === 'ar' ? (ORDER_STATUS_LABELS[order.status]?.[0] || order.status) : (ORDER_STATUS_LABELS[order.status]?.[1] || order.status)}
+              </span>
+            </div>
+            <div className="inline-flex items-center gap-2 bg-[#110E0C] border border-[#2A221E] px-3 py-1.5 rounded-xl">
+              <span className="text-[10px] text-[#A69B93]">{t('حالة الدفع', 'Payment')}:</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${order.payment_status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
+                  order.payment_status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                    'bg-red-500/20 text-red-400'
+                }`}>
+                {language === 'ar' ? (PAYMENT_STATUS_LABELS[order.payment_status]?.[0] || order.payment_status) : (PAYMENT_STATUS_LABELS[order.payment_status]?.[1] || order.payment_status)}
+              </span>
+            </div>
           </div>
 
           {order.loyalty_points_earned && order.loyalty_points_earned > 0 && (
@@ -188,8 +225,23 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
 
             <div className="space-y-1">
               <span className="text-[#A69B93] block">{t('شركة الشحن وطريقة الدفع', 'Courier & Payment')}</span>
-              <p className="font-bold text-white">{order.shipping_method}</p>
-              <p className="uppercase text-[#D99B26] font-extrabold">{order.payment_method}</p>
+              <p className="font-bold text-white">
+                {language === 'ar' ? (SHIPPING_METHOD_LABELS[order.shipping_method]?.[0] || order.shipping_method) : (SHIPPING_METHOD_LABELS[order.shipping_method]?.[1] || order.shipping_method)}
+              </p>
+              <p className="uppercase text-[#D99B26] font-extrabold">
+                {language === 'ar' ? (PAYMENT_METHOD_LABELS[order.payment_method]?.[0] || order.payment_method) : (PAYMENT_METHOD_LABELS[order.payment_method]?.[1] || order.payment_method)}
+              </p>
+              {(order.payment_method === 'visa' || order.payment_method === 'apple_pay') && (
+                <p className="text-[10px] text-[#A69B93] flex items-center gap-1 pt-0.5">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                  <span>{t('دفع آمن ومشفر عبر Stripe', 'Secure encrypted payment via Stripe')}</span>
+                </p>
+              )}
+              {order.payment_method === 'cod' && (
+                <p className="text-[10px] text-[#A69B93]">
+                  {t('الدفع نقداً عند استلام الطلب', 'Pay cash on delivery')}
+                </p>
+              )}
             </div>
           </div>
         </div>

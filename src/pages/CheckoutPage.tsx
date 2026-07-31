@@ -405,10 +405,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { id: 'mada', label_ar: 'بطاقة مدى MADA', label_en: 'Mada Debit Card', badge: 'مدى', img: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Mada_Logo.svg' },
-                  { id: 'apple_pay', label_ar: 'أبل باي Apple Pay', label_en: 'Apple Pay', badge: ' Pay', img: 'https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg' },
+                  { id: 'apple_pay', label_ar: 'Apple Pay (عبر Stripe)', label_en: 'Apple Pay (via Stripe)', badge: ' Pay', img: 'https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg' },
                   { id: 'tabby', label_ar: 'تابي (تقسيط 4 دفعات)', label_en: 'Tabby 4 Installments', badge: 'tabby', img: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/tabby.svg' },
                   { id: 'tamara', label_ar: 'تمارا (تقسيط 4 دفعات)', label_en: 'Tamara 4 Installments', badge: 'tamara', img: 'https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png' },
-                  { id: 'visa', label_ar: 'فيزا / ماستركارد', label_en: 'Visa / Mastercard', badge: 'VISA', img: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Visa_Inc._logo_%282021%E2%80%93present%29.svg' },
+                  { id: 'visa', label_ar: 'فيزا / ماستركارد (عبر Stripe)', label_en: 'Visa / Mastercard (via Stripe)', badge: 'VISA', img: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Visa_Inc._logo_%282021%E2%80%93present%29.svg' },
                   { id: 'cod', label_ar: 'الدفع عند الاستلام (+15 ﷼)', label_en: 'Cash on Delivery', badge: 'COD', img: '' }
                 ].map(p => {
                   const selected = paymentMethod === p.id;
