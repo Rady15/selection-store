@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 import multer from 'multer';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
@@ -862,6 +861,9 @@ app.use((err: any, req: any, res: any, next: any) => {
 // Vite Middleware for Dev / Static serving for Prod
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    // vite is ESM-only and must stay out of the Vercel serverless bundle,
+    // so it is loaded lazily and only when running the local dev server.
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
