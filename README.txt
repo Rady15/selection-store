@@ -87,15 +87,31 @@ The files that make Vercel work:
   - .vercelignore   keeps data-store.json, .env, logs out of the build
 
 ------------------------------------------------------------
-4) IMPORTANT - DATA PERSISTENCE ON VERCEL
+4) REQUIRED - DURABLE DATABASE ON VERCEL (Vercel KV)
 ------------------------------------------------------------
-Vercel's filesystem is EPHEMERAL. On Vercel the database
-(data-store.json) is written to /tmp and RESETS on every cold start.
-Orders placed right before a cold start may be lost.
+Vercel's filesystem (/tmp) is per-instance and RESETS on cold starts.
+Without a real database, checkout breaks: the order is written to one
+instance, then the PaymentIntent request lands on another instance and
+returns "Order not found" (404).
 
-If you need durable data (production), switch the data layer to a
-real database (e.g. Vercel Postgres, Upstash, or MongoDB Atlas).
-Local development keeps using ./data-store.json as usual.
+The app supports Vercel KV (Upstash Redis) out of the box — the whole
+store lives under a single key, and every API request re-syncs from it.
+
+Setup:
+  1. Vercel Dashboard > Storage > Create > KV -> create a store
+     (Hobby/Pro plans include free KV).
+  2. Connect it to the project; Vercel automatically injects these vars:
+       KV_REST_API_URL
+       KV_REST_API_TOKEN
+  3. Redeploy. The first request seeds the store, then it stays durable.
+
+(Plain Upstash Redis also works: use UPSTASH_REDIS_REST_URL and
+ UPSTASH_REDIS_REST_TOKEN instead.)
+
+Without KV configured, the app falls back to /tmp/data-store.json —
+fine for local dev, but live orders may be lost on Vercel. A real
+relational DB (Vercel Postgres, Neon, MongoDB Atlas) also works if you
+prefer to migrate the data layer instead.
 
 ------------------------------------------------------------
 5) RECOMMENDED SETTINGS FOR PRODUCTION

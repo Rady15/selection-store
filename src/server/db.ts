@@ -28,6 +28,16 @@ const DATA_FILE = process.env.VERCEL === '1'
     ? path.resolve(process.cwd(), process.env.DATA_FILE)
     : path.join(process.cwd(), 'data-store.json');
 
+// Durable storage on Vercel: Vercel KV / Upstash Redis REST API.
+// The filesystem (/tmp) is per-lambda-instance and resets on cold starts,
+// so cross-request flows (create order -> create PaymentIntent) would
+// otherwise fail with "Order not found" once two requests land on
+// different instances. The whole store is kept under one KV key.
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+const KV_KEY = 'fursan_data_store';
+const useKV = Boolean(KV_URL && KV_TOKEN);
+
 export interface DatabaseState {
   products: Product[];
   categories: Category[];
@@ -1037,8 +1047,114 @@ class Database {
       banners: [],
       quizConfig: initialQuizConfig
     };
-    this.loadState();
-    this.migrateAdminUser();
+
+    if (useKV) {
+      // Load the durable snapshot from KV first, then migrate the admin user.
+      // All reads await this.ready, so a warm instance never serves stale state.
+      this.ready = this.loadFromKV().then(() => {
+        this.migrateAdminUser();
+      }).catch(err => {
+        console.error('KV init failed, falling back to seed state:', err);
+        this.migrateAdminUser();
+      });
+    } else {
+      this.loadState();
+      this.migrateAdminUser();
+    }
+  }
+
+  /** Resolves once the durable store has been loaded (always resolved locally). */
+  ready: Promise<void> = Promise.resolve();
+
+  /** Serialized write queue for KV so concurrent mutations can't clobber each other. */
+  private _kvWrite: Promise<void> = Promise.resolve();
+
+  /** Incremented on every saveState() so a KV refresh never overwrites newer in-memory changes. */
+  private _mutGen = 0;
+
+  private _lastKvRefresh = 0;
+
+  private applyParsed(parsed: any) {
+    this.state = {
+      ...this.state,
+      ...parsed,
+      products: (parsed.products || initialProducts).map((p: any) => ({
+        ...p,
+        weight_options: p.weight_options || [],
+        grind_options: p.grind_options || [],
+        tasting_notes_ar: p.tasting_notes_ar || [],
+        tasting_notes_en: p.tasting_notes_en || [],
+        images: p.images || []
+      })),
+      categories: parsed.categories || initialCategories,
+      orders: parsed.orders || initialOrders,
+      users: parsed.users || initialUsers,
+      coupons: parsed.coupons || initialCoupons,
+      reviews: parsed.reviews || initialReviews,
+      questions: parsed.questions || initialQuestions,
+      stockNotifications: parsed.stockNotifications || [],
+      loyaltyTransactions: parsed.loyaltyTransactions || [],
+      homepageSections: parsed.homepageSections || initialHomepageSections,
+      wholesaleSubmissions: parsed.wholesaleSubmissions || [],
+      contactSubmissions: parsed.contactSubmissions || [],
+      newsletterSubscribers: parsed.newsletterSubscribers || [],
+      banners: parsed.banners || [],
+      quizConfig: Array.isArray(parsed.quizConfig) ? { ...initialQuizConfig, questions: parsed.quizConfig } : (parsed.quizConfig?.questions ? parsed.quizConfig : initialQuizConfig)
+    };
+  }
+
+  private async loadFromKV(): Promise<void> {
+    try {
+      const res = await fetch(`${KV_URL}/get/${KV_KEY}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      });
+      const data = await res.json() as any;
+      const raw = data?.result ?? data?.value ?? null;
+      if (raw && typeof raw === 'string') {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          this.applyParsed(parsed);
+          this._lastKvRefresh = Date.now();
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Error loading store from KV:', err);
+    }
+    // Nothing durable yet — persist the seed so future cold starts read it.
+    this._lastKvRefresh = Date.now();
+    this.saveState();
+  }
+
+  /**
+   * Re-reads the durable snapshot into memory at most once per interval.
+   * On Vercel multiple warm instances share one KV key, so a request may hit
+   * an instance whose in-memory copy is older than the last mutation made by
+   * another instance (e.g. the webhook marking an order paid). Called by the
+   * request middleware before handling. Local runs (file store) are a no-op.
+   */
+  async refreshIfStale(intervalMs = 2000): Promise<void> {
+    if (!useKV) return;
+    const now = Date.now();
+    if (now - this._lastKvRefresh < intervalMs) return;
+    const genAtStart = this._mutGen;
+    try {
+      const res = await fetch(`${KV_URL}/get/${KV_KEY}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      });
+      const data = await res.json() as any;
+      const raw = data?.result ?? data?.value ?? null;
+      this._lastKvRefresh = Date.now();
+      if (raw && typeof raw === 'string') {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && genAtStart === this._mutGen) {
+          this.applyParsed(parsed);
+        }
+      }
+    } catch (err) {
+      console.error('KV refresh error (serving from memory):', err);
+      this._lastKvRefresh = Date.now();
+    }
   }
 
   private loadState() {
@@ -1046,33 +1162,7 @@ class Database {
       if (fs.existsSync(DATA_FILE)) {
         let raw = fs.readFileSync(DATA_FILE, 'utf-8');
         if (raw.charCodeAt(0) === 0xFEFF) { raw = raw.slice(1); }
-        const parsed = JSON.parse(raw);
-        this.state = {
-          ...this.state,
-          ...parsed,
-          products: (parsed.products || initialProducts).map((p: any) => ({
-            ...p,
-            weight_options: p.weight_options || [],
-            grind_options: p.grind_options || [],
-            tasting_notes_ar: p.tasting_notes_ar || [],
-            tasting_notes_en: p.tasting_notes_en || [],
-            images: p.images || []
-          })),
-          categories: parsed.categories || initialCategories,
-          orders: parsed.orders || initialOrders,
-          users: parsed.users || initialUsers,
-          coupons: parsed.coupons || initialCoupons,
-          reviews: parsed.reviews || initialReviews,
-          questions: parsed.questions || initialQuestions,
-          stockNotifications: parsed.stockNotifications || [],
-          loyaltyTransactions: parsed.loyaltyTransactions || [],
-          homepageSections: parsed.homepageSections || initialHomepageSections,
-          wholesaleSubmissions: parsed.wholesaleSubmissions || [],
-          contactSubmissions: parsed.contactSubmissions || [],
-          newsletterSubscribers: parsed.newsletterSubscribers || [],
-          banners: parsed.banners || [],
-          quizConfig: Array.isArray(parsed.quizConfig) ? { ...initialQuizConfig, questions: parsed.quizConfig } : (parsed.quizConfig?.questions ? parsed.quizConfig : initialQuizConfig)
-        };
+        this.applyParsed(JSON.parse(raw));
       } else {
         this.saveState();
       }
@@ -1083,10 +1173,34 @@ class Database {
   }
 
   private saveState() {
-    try {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(this.state, null, 2), 'utf-8');
-    } catch (err) {
-      console.error('Error saving DB state:', err);
+    this._mutGen += 1;
+    const payload = JSON.stringify(this.state, null, 2);
+    if (useKV) {
+      // Fire-and-forget but serialized: every mutation enqueues behind the
+      // previous write. Call flush() on critical routes to guarantee the
+      // snapshot is durable before the request responds.
+      this._kvWrite = this._kvWrite.then(() =>
+        fetch(`${KV_URL}/set/${KV_KEY}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: payload })
+        }).then(res => {
+          if (!res.ok) console.error('KV save error:', res.status, res.statusText);
+        }).catch(err => console.error('KV save error:', err))
+      );
+    } else {
+      try {
+        fs.writeFileSync(DATA_FILE, payload, 'utf-8');
+      } catch (err) {
+        console.error('Error saving DB state:', err);
+      }
+    }
+  }
+
+  /** Waits until all pending writes to the durable store have completed. */
+  async flush() {
+    if (useKV) {
+      await this._kvWrite;
     }
   }
 

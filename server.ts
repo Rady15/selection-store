@@ -17,6 +17,16 @@ const signToken = (user: any) =>
 
 app.use(express.json({ verify: (req: any, _res, buf) => { req.rawBody = buf; } }));
 
+// Wait until the durable store is loaded (no-op locally) before handling
+// any request — on Vercel the DB boots from KV asynchronously. Also re-syncs
+// from KV at most every 2s so warm instances see mutations made by others
+// (e.g. the Stripe webhook marking an order paid).
+app.use('/api', async (_req, _res, next) => {
+  try { await db.ready; } catch { /* fall back to in-memory state */ }
+  try { await db.refreshIfStale(); } catch { /* serve from memory */ }
+  next();
+});
+
 // File upload configuration
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
@@ -330,9 +340,10 @@ app.get('/api/orders/:orderNumber', (req, res) => {
   res.json(order);
 });
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const order = db.createOrder(req.body);
+    await db.flush();
     res.json(order);
   } catch (err: any) {
     res.status(400).json({ error: err.message || 'Failed to create order' });
@@ -768,7 +779,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
   }
 });
 
-app.post('/api/payments/sandbox-confirm', (req, res) => {
+app.post('/api/payments/sandbox-confirm', async (req, res) => {
   if (stripe) {
     return res.status(400).json({ error_ar: 'وضع الدفع الحقيقي مفعّل', error_en: 'Live mode is active' });
   }
@@ -777,10 +788,11 @@ app.post('/api/payments/sandbox-confirm', (req, res) => {
   if (!order) {
     return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
   }
+  await db.flush();
   res.json({ success: true, order });
 });
 
-app.post('/api/payments/webhook', (req: any, res) => {
+app.post('/api/payments/webhook', async (req: any, res) => {
   const sig = req.headers['stripe-signature'] as string;
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!stripe || !secret || !req.rawBody) {
@@ -805,6 +817,7 @@ app.post('/api/payments/webhook', (req: any, res) => {
     if (orderId) db.updateOrderPaymentStatus(orderId, 'failed', pi.id);
   }
 
+  await db.flush();
   res.json({ received: true });
 });
 
