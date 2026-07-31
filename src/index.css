@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'IBM Plex Sans Arabic', sans-serif;
+  --font-serif: 'IBM Plex Sans Arabic', sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+  }
+  body {
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+  }
+}
+
+html, body, #root {
+  scroll-behavior: smooth;
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #110e0c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a221e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8c532b;
+}
+
+/* Hide scrollbar utility for clean horizontal smooth scrolling carousels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+}
+
+.scroll-snap-start {
+  scroll-snap-align: start;
+}
+
+/* Cup Fill Animation - White text reveals from bottom to top like filling a cup */
+@keyframes cupFill {
+  0% {
+    clip-path: inset(100% 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.animate-cup-fill {
+  color: #F8F5F0;
+  clip-path: inset(100% 0 0 0);
+  animation: cupFill 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 0.2s;
+}
+
+@keyframes waveFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-wave-float {
+  animation: waveFloat 3s ease-in-out infinite;
+}
+
