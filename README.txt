@@ -132,3 +132,18 @@ prefer to migrate the data layer instead.
   npm run build:vercel  frontend-only build (used by Vercel)
   npm run lint        TypeScript type-check
   npm start           run the built Node server (dist/server.cjs)
+
+------------------------------------------------------------
+7) TROUBLESHOOTING CONSOLE WARNINGS
+------------------------------------------------------------
+- The app sets NO Content-Security-Policy header. If Chrome logs
+  "Refused to load ... because it violates ... font-src 'none'" /
+  "style-src 'self'" (Stripe's Mulish fonts), that policy is injected
+  by a BROWSER EXTENSION (e.g. an extension whose background script is
+  named injectScriptAdjust.js), not by this site. Try an incognito
+  window with extensions disabled to confirm.
+- "Each child in a list should have a unique key" — already resolved
+  in source; clear cache / hard-reload after deploying.
+- The Vite "WebSocket failed" errors only appear when running the
+  dev server; they never appear on the Vercel production build.
+

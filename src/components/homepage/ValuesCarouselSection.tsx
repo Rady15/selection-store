@@ -111,7 +111,7 @@ export const ValuesCarouselSection: React.FC<ValuesCarouselSectionProps> = ({ it
             const Icon = ICON_MAP[v.icon] || Award;
             return (
               <motion.div
-                key={v.id}
+                key={idx}
                 initial={{ opacity: 0, y: 20, scale: 0.92 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true, margin: '-20px' }}

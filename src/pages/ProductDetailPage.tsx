@@ -57,7 +57,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
   useEffect(() => {
     setLoading(true);
     fetch(`/api/products/${slug}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Product not found');
+        return res.json();
+      })
       .then(data => {
         setProduct(data);
         if (data.weight_options?.[0]) setSelectedWeight(data.weight_options[0].value);

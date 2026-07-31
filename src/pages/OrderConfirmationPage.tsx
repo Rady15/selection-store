@@ -54,6 +54,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
   const { language, t } = useLanguage();
   const { formatPrice } = useCurrency();
   const [order, setOrder] = useState<Order | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,9 +62,15 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
 
     const loadOrder = () => {
       fetch(`/api/orders/${orderId}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            if (!cancelled) setNotFound(true);
+            return null;
+          }
+          return res.json();
+        })
         .then(data => {
-          if (cancelled) return;
+          if (cancelled || data === null) return;
           setOrder(data);
           const unpaidStripe = data.payment_status === 'pending' && data.payment_method !== 'cod';
           if (unpaidStripe && attempts < 6) {
@@ -77,6 +84,24 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
     loadOrder();
     return () => { cancelled = true; };
   }, [orderId]);
+
+  if (notFound) {
+    return (
+      <div className="bg-[#110E0C] text-[#F8F5F0] min-h-screen py-20 text-center space-y-4 px-4">
+        <Coffee className="w-16 h-16 text-[#8C532B] mx-auto" />
+        <h2 className="text-2xl font-bold">{t('الطلب غير موجود', 'Order Not Found')}</h2>
+        <p className="text-sm text-[#A69B93] max-w-md mx-auto">
+          {t('تعذر العثور على الطلب. قد يكون قيد المعالجة بعد، حاول مرة أخرى.', 'We could not find this order. It may still be processing, please try again.')}
+        </p>
+        <button
+          onClick={() => onNavigate('/')}
+          className="bg-[#8C532B] text-white px-6 py-2.5 rounded-xl text-xs font-bold cursor-pointer"
+        >
+          {t('العودة للرئيسية', 'Back to Home')}
+        </button>
+      </div>
+    );
+  }
 
   if (!order) {
     return (
