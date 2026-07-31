@@ -58,30 +58,21 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
 
   useEffect(() => {
     let cancelled = false;
-    let attempts = 0;
 
-    const loadOrder = () => {
-      fetch(`/api/orders/${orderId}`)
-        .then(res => {
-          if (!res.ok) {
-            if (!cancelled) setNotFound(true);
-            return null;
-          }
-          return res.json();
-        })
-        .then(data => {
-          if (cancelled || data === null) return;
-          setOrder(data);
-          const unpaidStripe = data.payment_status === 'pending' && data.payment_method !== 'cod';
-          if (unpaidStripe && attempts < 6) {
-            attempts += 1;
-            setTimeout(loadOrder, 2500);
-          }
-        })
-        .catch(err => console.error(err));
-    };
+    fetch(`/api/orders/${orderId}`)
+      .then(res => {
+        if (!res.ok) {
+          if (!cancelled) setNotFound(true);
+          return null;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (cancelled || data === null) return;
+        setOrder(data);
+      })
+      .catch(err => console.error(err));
 
-    loadOrder();
     return () => { cancelled = true; };
   }, [orderId]);
 

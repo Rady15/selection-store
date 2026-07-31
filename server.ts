@@ -743,11 +743,37 @@ app.put('/api/admin/stock-notifications/:id', (req, res) => {
 // ============ Stripe Payments ============
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
+// Compares the server-side secret key with the browser publishable key.
+// They must share the same mode (test/live) AND belong to the same Stripe
+// account, otherwise confirmPayment fails on the client.
+function stripeKeyDiagnostics() {
+  const secretKey = process.env.STRIPE_SECRET_KEY || '';
+  const pubKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+  const secretMode = secretKey.startsWith('sk_test_') ? 'test' : secretKey.startsWith('sk_live_') ? 'live' : null;
+  const pubMode = pubKey.startsWith('pk_test_') ? 'test' : pubKey.startsWith('pk_live_') ? 'live' : null;
+  const secretAccount = secretKey.length > 32 ? secretKey.slice(8, 32) : null;
+  const pubAccount = pubKey.length > 32 ? pubKey.slice(8, 32) : null;
+  return {
+    secret_mode: secretMode,
+    publishable_mode: pubMode,
+    key_mode_mismatch: !!(secretMode && pubMode && secretMode !== pubMode),
+    key_account_mismatch: !!(secretAccount && pubAccount && secretAccount !== pubAccount)
+  };
+}
+
 app.get('/api/payments/config', (_req, res) => {
+  const diag = stripeKeyDiagnostics();
+  if (diag.key_mode_mismatch) {
+    console.error(`[Stripe] KEY MODE MISMATCH: secret=${diag.secret_mode}, publishable=${diag.publishable_mode}. Use keys from the same mode.`);
+  }
+  if (diag.key_account_mismatch) {
+    console.error('[Stripe] KEY ACCOUNT MISMATCH: secret and publishable keys belong to different Stripe accounts.');
+  }
   res.json({
     mode: stripe ? 'live' : 'sandbox',
     configured: !!stripe,
-    publishable_key: process.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
+    publishable_key: process.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+    ...diag
   });
 });
 
@@ -772,9 +798,17 @@ app.post('/api/payments/create-intent', async (req, res) => {
       metadata: { order_id: order.id, order_number: order.order_number },
       description: `Order ${order.order_number} - Selection Specialty Coffee`
     });
-    res.json({ mode: 'live', client_secret: paymentIntent.client_secret, amount_halala: paymentIntent.amount });
+    console.log(`[Stripe] create-intent OK: order=${order.order_number}, pi=${paymentIntent.id}, status=${paymentIntent.status}, amount=${paymentIntent.amount}, client_secret=${paymentIntent.client_secret ? 'present' : 'MISSING'}`);
+    if (!paymentIntent.client_secret) {
+      return res.status(500).json({
+        error_ar: 'تعذر إنشاء عملية الدفع',
+        error_en: 'create-intent did not return a clientSecret',
+        detail: 'client_secret is null'
+      });
+    }
+    res.json({ mode: 'live', client_secret: paymentIntent.client_secret, amount_halala: paymentIntent.amount, payment_intent_id: paymentIntent.id });
   } catch (err: any) {
-    console.error('Stripe create-intent error:', err);
+    console.error('[Stripe] create-intent error:', err);
     res.status(500).json({ error_ar: 'تعذر إنشاء عملية الدفع', error_en: 'Could not create payment', detail: err.message });
   }
 });

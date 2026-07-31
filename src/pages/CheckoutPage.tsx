@@ -149,15 +149,25 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order_id: data.id })
           }).then(r => r.json());
+          console.log('[Stripe] /api/payments/config:', cfg);
+          console.log('[Stripe] /api/payments/create-intent:', intent);
+
           if (intent.error_ar || intent.error_en) {
             setPaymentError(intent.error_ar || intent.error_en || 'Payment error');
+          } else if (cfg.key_mode_mismatch) {
+            setPaymentError(t('توجد مشكلة في مفاتيح Stripe: المفتاح السري والمفتاح العام من وضعين مختلفين (test/live)', 'Stripe key issue: secret and publishable keys are in different modes (test/live)'));
+          } else if (cfg.key_account_mismatch) {
+            setPaymentError(t('توجد مشكلة في مفاتيح Stripe: المفتاح السري والمفتاح العام من حسابي Stripe مختلفين', 'Stripe key issue: secret and publishable keys belong to different Stripe accounts'));
+          } else if ((intent.mode === 'live' || cfg.mode === 'live') && !intent.client_secret) {
+            console.error('[Stripe] create-intent returned no clientSecret:', intent);
+            setPaymentError(t('لم يستلم الخادم مفتاح دفع صالحاً، أعد المحاولة', 'Server did not return a valid clientSecret, please retry'));
           } else {
             setPaymentMode(intent.mode || cfg.mode || 'sandbox');
             setClientSecret(intent.client_secret || '');
             setPublishableKey(cfg.publishable_key || '');
           }
         } catch (err) {
-          console.error(err);
+          console.error('[Stripe] prepare-payment threw:', err);
           setPaymentError(t('تعذر تجهيز عملية الدفع', 'Could not prepare payment'));
         }
         setPaymentBusy(false);
