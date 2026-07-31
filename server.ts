@@ -745,24 +745,46 @@ const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SEC
 
 // Compares the server-side secret key with the browser publishable key.
 // They must share the same mode (test/live) AND belong to the same Stripe
-// account, otherwise confirmPayment fails on the client.
-function stripeKeyDiagnostics() {
+// account, otherwise confirmPayment fails on the client. The account match is
+// resolved authoritatively from the Stripe API (cached for 60s) because keys
+// embed their account id followed by a variable-length random suffix, so
+// naive slicing of the token produces false mismatches.
+let keyPairCache: { diag: any; at: number } | null = null;
+
+async function stripeKeyDiagnostics() {
+  const now = Date.now();
+  if (keyPairCache && now - keyPairCache.at < 60_000) return keyPairCache.diag;
+
   const secretKey = process.env.STRIPE_SECRET_KEY || '';
   const pubKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
   const secretMode = secretKey.startsWith('sk_test_') ? 'test' : secretKey.startsWith('sk_live_') ? 'live' : null;
   const pubMode = pubKey.startsWith('pk_test_') ? 'test' : pubKey.startsWith('pk_live_') ? 'live' : null;
-  const secretAccount = secretKey.length > 32 ? secretKey.slice(8, 32) : null;
-  const pubAccount = pubKey.length > 32 ? pubKey.slice(8, 32) : null;
-  return {
+
+  let key_account_mismatch = false;
+  if (secretKey && pubKey && stripe) {
+    try {
+      const acct = await stripe.accounts.retrieveCurrent();
+      const acctPart = (acct.id || '').replace(/^acct_/, '');
+      const pubToken = pubKey.replace(/^pk_(test|live)_/, '');
+      key_account_mismatch = !(acctPart && pubToken.includes(acctPart));
+    } catch (err: any) {
+      console.error('[Stripe] could not resolve account for key-pair check:', err?.message || err);
+      key_account_mismatch = true;
+    }
+  }
+
+  const diag = {
     secret_mode: secretMode,
     publishable_mode: pubMode,
     key_mode_mismatch: !!(secretMode && pubMode && secretMode !== pubMode),
-    key_account_mismatch: !!(secretAccount && pubAccount && secretAccount !== pubAccount)
+    key_account_mismatch
   };
+  keyPairCache = { diag, at: now };
+  return diag;
 }
 
-app.get('/api/payments/config', (_req, res) => {
-  const diag = stripeKeyDiagnostics();
+app.get('/api/payments/config', async (_req, res) => {
+  const diag = await stripeKeyDiagnostics();
   if (diag.key_mode_mismatch) {
     console.error(`[Stripe] KEY MODE MISMATCH: secret=${diag.secret_mode}, publishable=${diag.publishable_mode}. Use keys from the same mode.`);
   }
