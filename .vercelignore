@@ -1,0 +1,18 @@
+# Local-only files that must never reach Vercel
+data-store.json
+.env
+.env.*.local
+*.log
+
+# Node
+node_modules
+
+# Build output (the dist dir IS published — that's how the storefront is served)
+# but keep the server bundle produced by `npm run build` out of the deployment
+dist/server.cjs
+dist/server.cjs.map
+
+# Test / dev artifacts
+playwright-report
+test-results
+*.playwright.*
