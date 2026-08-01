@@ -17,6 +17,7 @@ interface CurrencyContextType {
   currency: Currency;
   setCurrency: (c: Currency) => void;
   formatPrice: (amountInSAR: number) => React.ReactNode;
+  formatPriceString: (amountInSAR: number) => string;
   currentCurrencyConfig: CurrencyConfig;
 }
 
@@ -38,20 +39,27 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const config = currencies[currency] || currencies.SAR;
 
-  const formatPrice = (amountInSAR: number): React.ReactNode => {
-    const converted = amountInSAR * config.rateFromSAR;
-    const formatted = converted.toFixed(currency === 'KWD' || currency === 'BHD' || currency === 'OMR' ? 3 : 2);
+    const formatPrice = (amountInSAR: number): React.ReactNode => {
+      const converted = amountInSAR * config.rateFromSAR;
+      const formatted = converted.toFixed(currency === 'KWD' || currency === 'BHD' || currency === 'OMR' ? 3 : 2);
 
-    if (language === 'ar' && currency === 'SAR') {
-      return <>{formatted} <CurrencySymbol size={13} /></>;
-    }
+      if (language === 'ar' && currency === 'SAR') {
+        return <>{formatted} <CurrencySymbol size={13} /></>;
+      }
 
-    const symbol = language === 'ar' ? config.symbol_ar : config.symbol_en;
-    return `${formatted} ${symbol}`;
-  };
+      const symbol = language === 'ar' ? config.symbol_ar : config.symbol_en;
+      return `${formatted} ${symbol}`;
+    };
+
+    const formatPriceString = (amountInSAR: number): string => {
+      const converted = amountInSAR * config.rateFromSAR;
+      const formatted = converted.toFixed(currency === 'KWD' || currency === 'BHD' || currency === 'OMR' ? 3 : 2);
+      const symbol = language === 'ar' ? config.symbol_ar : config.symbol_en;
+      return `${formatted} ${symbol}`;
+    };
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice, currentCurrencyConfig: config }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatPrice, formatPriceString, currentCurrencyConfig: config }}>
       {children}
     </CurrencyContext.Provider>
   );

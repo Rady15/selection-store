@@ -22,7 +22,8 @@ import {
   X,
   ShoppingCart,
   BrainCircuit,
-  Store
+  Store,
+  Menu
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -44,6 +45,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [newOrders, setNewOrders] = useState<any[]>([]);
   const [notification, setNotification] = useState<{ visible: boolean; count: number }>({ visible: false, count: 0 });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const POLL_INTERVAL = 3000;
 
@@ -84,6 +86,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     onTabChange('orders');
   };
 
+  const closeMobileNav = () => setMobileNavOpen(false);
+
+  const handleNavClick = (id: string) => {
+    if (id === 'orders') handleOrdersClick();
+    else onTabChange(id);
+    closeMobileNav();
+  };
+
   const navItems = [
     { id: 'overview', label_ar: 'نظرة عامة', label_en: 'Overview', icon: LayoutDashboard },
     { id: 'products', label_ar: 'المنتجات', label_en: 'Products', icon: Package },
@@ -104,17 +114,53 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   ];
 
   return (
-    <div className="bg-[#0C0A09] text-[#F8F5F0] min-h-screen flex flex-col md:flex-row font-sans">
+    <div className="bg-[#0C0A09] text-[#F8F5F0] min-h-screen flex flex-col md:flex-row font-sans overflow-x-hidden">
+
+      {/* Mobile Top Bar */}
+      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-[#110E0C] border-b border-[#2A221E]">
+        <img src="/whitelogo.png" alt="Selection Store" className="h-7 w-auto" />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleLanguage}
+            className="bg-[#1C1613] hover:bg-[#2A221E] text-[#D4C3B5] px-3 py-1.5 rounded-lg text-[11px] font-bold border border-[#2A221E] transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Globe className="w-3 h-3 text-[#D99B26]" />
+            <span>{language === 'ar' ? 'EN' : 'AR'}</span>
+          </button>
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="bg-[#1C1613] hover:bg-[#2A221E] text-[#D4C3B5] p-2 rounded-lg border border-[#2A221E] transition cursor-pointer"
+            aria-label={t('القائمة', 'Menu')}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Drawer Backdrop */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden"
+          onClick={closeMobileNav}
+        />
+      )}
 
       {/* Sidebar */}
-      <aside className="w-full md:w-60 bg-[#110E0C] border-b md:border-b-0 md:border-r border-[#2A221E] flex flex-col justify-between flex-shrink-0 z-20">
+      <aside className={`fixed inset-y-0 ${language === 'ar' ? 'right-0' : 'left-0'} z-50 w-72 max-w-[85vw] bg-[#110E0C] border-[#2A221E] flex flex-col justify-between flex-shrink-0 transition-transform duration-300 ease-in-out ${language === 'ar' ? 'border-l' : 'border-r'} border-b md:border-b-0 ${mobileNavOpen ? 'translate-x-0' : language === 'ar' ? 'translate-x-full' : '-translate-x-full'} md:sticky md:top-0 md:h-screen md:translate-x-0 md:w-60`}>
 
-        <div>
-          <div className="p-4 border-b border-[#2A221E]">
+        <div className="flex flex-col min-h-0 flex-1">
+          <div className="p-4 border-b border-[#2A221E] flex items-center justify-between">
             <img src="/whitelogo.png" alt="Selection Store" className="h-8 w-auto" />
+            <button
+              onClick={closeMobileNav}
+              className="md:hidden p-1.5 rounded-lg text-[#A69B93] hover:text-white hover:bg-[#1C1613] transition cursor-pointer"
+              aria-label={t('إغلاق القائمة', 'Close menu')}
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <nav className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-140px)]">
+          <nav className="p-3 space-y-0.5 overflow-y-auto min-h-0 flex-1">
             {navItems.map(item => {
               const Icon = item.icon;
               const active = currentTab === item.id;
@@ -122,7 +168,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={item.id === 'orders' ? handleOrdersClick : () => { if (item.id !== 'orders') { onTabChange(item.id); } }}
+                  onClick={() => handleNavClick(item.id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                     active
                       ? 'bg-[#8C532B] text-white shadow-lg shadow-[#8C532B]/30'
@@ -173,7 +219,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 relative">
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 relative">
         {/* New Orders Notification Banner */}
         {notification.visible && notification.count > 0 && (
           <div className={`fixed top-4 ${language === 'ar' ? 'left-4 right-auto md:left-8' : 'right-4 left-auto md:right-8'} z-50 animate-slide-down`}>

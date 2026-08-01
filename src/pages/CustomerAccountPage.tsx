@@ -410,10 +410,10 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
                   </div>
 
                   <div className="space-y-2">
-                    {ord.items.map((i, idx) => (
+                    {ord.items.map((i: any, idx) => (
                       <div key={idx} className="flex justify-between text-xs text-[#D4C3B5]">
-                        <span>{i.quantity}x {language === 'ar' ? i.product_name_ar : i.product_name_en} ({i.weight})</span>
-                        <span className="font-bold text-white">{formatPrice(i.total_price)}</span>
+                        <span>{i.quantity}x {language === 'ar' ? (i.product_name_ar || i.name_ar) : (i.product_name_en || i.name_en)}{i.weight ? ` (${i.weight})` : ''}</span>
+                        <span className="font-bold text-white">{formatPrice(typeof i.total_price === 'number' ? i.total_price : i.price)}</span>
                       </div>
                     ))}
                   </div>
@@ -598,8 +598,8 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
                             />
                           )}
                           <div className="flex-1">
-                            <p className="text-sm font-bold text-white">{language === 'ar' ? item.product_name_ar : item.product_name_en}</p>
-                            <p className="text-[10px] text-[#A69B93]">{item.weight} • {item.quantity}x</p>
+                            <p className="text-sm font-bold text-white">{language === 'ar' ? (item.product_name_ar || item.name_ar) : (item.product_name_en || item.name_en)}</p>
+                            <p className="text-[10px] text-[#A69B93]">{item.weight ? `${item.weight} • ` : ''}{item.quantity}x</p>
                           </div>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
                             {t('مستلمة', 'Delivered')}

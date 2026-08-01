@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { usePolling } from '../../hooks/usePolling';
 import { Order, OrderStatus } from '../../types';
+import { printTaxInvoice } from '../../utils/printTaxInvoice';
 import { ShoppingBag, Eye, X, Trash2, Printer, Loader2 } from 'lucide-react';
 
 const statusOptions: { value: OrderStatus; label_ar: string; label_en: string }[] = [
@@ -22,7 +23,7 @@ const PAYMENT_LABELS: Record<string, [string, string]> = {
 
 export const AdminOrdersManager: React.FC = () => {
   const { language, t } = useLanguage();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, formatPriceString } = useCurrency();
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -95,113 +96,7 @@ export const AdminOrdersManager: React.FC = () => {
   };
 
   const printReceipt = (ord: Order) => {
-    const win = window.open('', '_blank', 'width=420,height=700');
-    if (!win) {
-      alert(t('الرجاء السماح بالنوافذ المنبثقة لطباعة الإيصال', 'Please allow pop-ups to print the receipt'));
-      return;
-    }
-    const dir = language === 'ar' ? 'rtl' : 'ltr';
-    const formatItemTotal = (v: number) => formatPrice(v);
-    const rows = ord.items.map((item, idx) => `
-      <tr>
-        <td style="padding:6px 4px;border-bottom:1px solid #e2ddd6;vertical-align:top">
-          <strong>${language === 'ar' ? item.product_name_ar : item.product_name_en}</strong>
-          <div style="font-size:11px;color:#666">${item.weight} • ${item.grind} × ${item.quantity}</div>
-        </td>
-        <td style="padding:6px 4px;border-bottom:1px solid #e2ddd6;text-align:${dir === 'rtl' ? 'left' : 'right'};white-space:nowrap">${formatItemTotal(item.total_price)}</td>
-      </tr>
-    `).join('');
-
-    const priceRow = (label: string, value: string, style = '') => `
-      <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:13px;${style}">
-        <span>${label}</span><span>${value}</span>
-      </div>
-    `;
-
-    const totalRow = `
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid #2b2b2b;font-size:16px;font-weight:700">
-        <span>${t('الإجمالي', 'Total')}</span><span>${formatPrice(ord.total_amount)}</span>
-      </div>
-    `;
-
-    win.document.write(`
-      <!DOCTYPE html>
-      <html lang="${language === 'ar' ? 'ar' : 'en'}" dir="${dir}">
-      <head>
-        <meta charset="utf-8" />
-        <title>${t('إيصال الطلب', 'Order Receipt')} - ${ord.order_number}</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #1c1613; margin: 0; }
-          .receipt { max-width: 420px; margin: 0 auto; padding: 24px; }
-          h1 { font-size: 20px; margin: 0 0 2px; }
-          .store { font-size: 11px; color: #8a7a6b; letter-spacing: 0.4px; }
-          .meta { border-top: 1px dashed #c8bfb4; border-bottom: 1px dashed #c8bfb4; margin: 14px 0; padding: 10px 0; font-size: 13px; }
-          .meta div { display: flex; justify-content: space-between; padding: 2px 0; }
-          .meta span { color: #8a7a6b; }
-          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-          .paid { display:inline-block; margin-top:6px; padding:4px 12px; border-radius:20px; background:#e8f5e9; color:#1b5e20; font-size:12px; font-weight:700; }
-          .pending { background:#fff3e0; color:#b26a00; }
-          .failed { background:#fdecea; color:#b71c1c; }
-        </style>
-      </head>
-      <body>
-        <div class="receipt">
-          <h1>Selection Specialty Coffee</h1>
-          <div class="store">${t('قائمة مختصة - تحميص يومي طازج', 'Specialty coffee roasters - fresh daily roast')}</div>
-
-          <div class="meta">
-            <div><span>${t('رقم الطلب', 'Order No.')}</span><strong>${ord.order_number}</strong></div>
-            <div><span>${t('التاريخ', 'Date')}</span><strong>${new Date(ord.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-GB')} ${new Date(ord.created_at).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}</strong></div>
-            <div><span>${t('العميل', 'Customer')}</span><strong>${ord.customer_name}</strong></div>
-            <div><span>${t('الهاتف', 'Phone')}</span><strong dir="ltr">${ord.phone}</strong></div>
-            <div><span>${t('الدفع', 'Payment')}</span><strong>${language === 'ar' ? (ord.payment_method || '').toUpperCase() : (ord.payment_method || '').toUpperCase()}</strong></div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th style="text-align:${dir === 'rtl' ? 'right' : 'left'};font-size:12px;border-bottom:2px solid #2b2b2b;padding:4px">${t('المنتج', 'Item')}</th>
-                <th style="text-align:${dir === 'rtl' ? 'left' : 'right'};font-size:12px;border-bottom:2px solid #2b2b2b;padding:4px">${t('المبلغ', 'Price')}</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-
-          ${priceRow(t('المجموع الفرعي', 'Subtotal'), formatPrice(ord.subtotal))}
-          ${ord.discount_amount > 0 ? priceRow(t('الخصم', 'Discount'), '-' + formatPrice(ord.discount_amount), 'color:#1b5e20') : ''}
-          ${ord.loyalty_discount && ord.loyalty_discount > 0 ? priceRow(t('خصم الولاء', 'Loyalty'), '-' + formatPrice(ord.loyalty_discount), 'color:#b26a00') : ''}
-          ${priceRow(t('الشحن', 'Shipping'), ord.shipping_cost > 0 ? formatPrice(ord.shipping_cost) : t('مجاني', 'Free'))}
-          ${ord.cod_surcharge && ord.cod_surcharge > 0 ? priceRow(t('رسوم COD', 'COD Surcharge'), '+' + formatPrice(ord.cod_surcharge), 'color:#b26a00') : ''}
-          ${priceRow(t('ضريبة القيمة المضافة 15%', 'VAT 15%'), formatPrice(ord.tax_amount))}
-          ${totalRow}
-
-          <div style="font-size:12px;margin-top:6px">
-            <span style="color:#8a7a6b">${t('حالة الدفع', 'Payment Status')}:</span>
-            <span class="${ord.payment_status === 'paid' ? 'paid' : ord.payment_status === 'pending' ? 'pending' : 'failed'}">
-              ${language === 'ar' ? (PAYMENT_LABELS[ord.payment_status]?.[0] || ord.payment_status) : (PAYMENT_LABELS[ord.payment_status]?.[1] || ord.payment_status)}
-            </span>
-          </div>
-          <div style="font-size:12px;margin-top:4px">
-            <span style="color:#8a7a6b">${t('حالة الطلب', 'Order Status')}:</span>
-            <strong>${statusLabel(getEffectiveStatus(ord))}</strong>
-          </div>
-          ${ord.tracking_number ? `<div style="font-size:12px;margin-top:4px"><span style="color:#8a7a6b">${t('رقم التتبع', 'Tracking No.')}:</span> <strong dir="ltr">${ord.tracking_number}</strong></div>` : ''}
-          ${ord.shipping_address ? `<div style="font-size:12px;margin-top:4px"><span style="color:#8a7a6b">${t('العنوان', 'Address')}:</span> ${ord.shipping_address.city} - ${ord.shipping_address.district} - ${ord.shipping_address.street}</div>` : ''}
-
-          <div style="margin-top:18px;text-align:center;font-size:11px;color:#8a7a6b;border-top:1px dashed #c8bfb4;padding-top:10px">
-            ${t('شكراً لتسوقك من Selection', 'Thank you for shopping with Selection')}
-          </div>
-        </div>
-        <script>
-          window.addEventListener('load', function () {
-            setTimeout(function () { window.print(); }, 250);
-          });
-        </script>
-      </body>
-      </html>
-    `);
-    win.document.close();
-    win.focus();
+    printTaxInvoice(ord, { language, formatPrice: formatPriceString });
   };
 
   const filteredOrders = statusFilter === 'all' ? orders : orders.filter(o => getEffectiveStatus(o) === statusFilter);
@@ -282,7 +177,7 @@ export const AdminOrdersManager: React.FC = () => {
                     <span className="text-[10px] text-[#A69B93]">{ord.customer_name} · {ord.phone}</span>
                   </td>
                   <td className="p-4">
-                    <span className="font-bold text-white block">{ord.shipping_address.city}</span>
+                    <span className="font-bold text-white block">{ord.shipping_address?.city || '—'}</span>
                     <span className="text-[10px] text-[#D99B26]">{ord.shipping_method}</span>
                   </td>
                   <td className="p-4 font-extrabold text-[#D99B26]">
@@ -388,19 +283,27 @@ export const AdminOrdersManager: React.FC = () => {
 
               <div className="p-3 rounded-2xl bg-[#1C1613] border border-[#2A221E]">
                 <span className="text-[#A69B93] font-semibold">{t('عنوان الشحن', 'Shipping Address')}</span>
-                <p className="text-white font-bold mt-1">{selectedOrder.shipping_address.city} - {selectedOrder.shipping_address.district}</p>
-                <p className="text-[#D4C3B5]">{selectedOrder.shipping_address.street} {selectedOrder.shipping_address.building}</p>
+                {selectedOrder.shipping_address ? (
+                  <>
+                    <p className="text-white font-bold mt-1">{selectedOrder.shipping_address.city} - {selectedOrder.shipping_address.district}</p>
+                    <p className="text-[#D4C3B5]">{selectedOrder.shipping_address.street} {selectedOrder.shipping_address.building}</p>
+                  </>
+                ) : (
+                  <p className="text-[#A69B93] mt-1">—</p>
+                )}
               </div>
 
               <div className="p-3 rounded-2xl bg-[#1C1613] border border-[#2A221E]">
                 <span className="text-[#A69B93] font-semibold">{t('المنتجات', 'Items')}</span>
-                {selectedOrder.items.map((item, idx) => (
+                {selectedOrder.items.map((item: any, idx) => (
                   <div key={idx} className="flex justify-between mt-2 text-[#D4C3B5]">
                     <div>
-                      <span>{language === 'ar' ? item.product_name_ar : item.product_name_en} × {item.quantity}</span>
-                      <span className="text-[10px] text-[#A69B93] block">{item.weight} • {item.grind}</span>
+                      <span>{language === 'ar' ? (item.product_name_ar || item.name_ar) : (item.product_name_en || item.name_en)} × {item.quantity}</span>
+                      {item.weight && (
+                        <span className="text-[10px] text-[#A69B93] block">{item.weight}{item.grind ? ` • ${item.grind}` : ''}</span>
+                      )}
                     </div>
-                    <span className="font-bold text-white">{formatPrice(item.total_price)}</span>
+                    <span className="font-bold text-white">{formatPrice(typeof item.total_price === 'number' ? item.total_price : item.price)}</span>
                   </div>
                 ))}
               </div>

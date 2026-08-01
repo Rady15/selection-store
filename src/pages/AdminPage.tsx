@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminOverviewDashboard from '../components/admin/AdminOverviewDashboard';
 import AdminProductsManager from '../components/admin/AdminProductsManager';
@@ -17,12 +17,35 @@ import AdminSettingsManager from '../components/admin/AdminSettingsManager';
 import AdminNewsletterManager from '../components/admin/AdminNewsletterManager';
 import AdminQuizManager from '../components/admin/AdminQuizManager';
 
+const VALID_TABS = [
+  'overview', 'products', 'orders', 'customers', 'reviews', 'coupons',
+  'homepage', 'contact', 'stock-alerts', 'wholesale', 'categories',
+  'banners', 'announcement', 'settings', 'quiz', 'newsletter'
+];
+
+const getTabFromPath = (): string => {
+  const seg = window.location.pathname.replace(/^\/admin\/?/, '');
+  return VALID_TABS.includes(seg) ? seg : 'overview';
+};
+
 interface AdminPageProps {
   onNavigate: (path: string) => void;
 }
 
 export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
-  const [currentTab, setCurrentTab] = useState('overview');
+  const [currentTab, setCurrentTab] = useState(getTabFromPath);
+
+  // Keep the active tab in sync when navigating via browser back/forward.
+  useEffect(() => {
+    const onPopState = () => setCurrentTab(getTabFromPath());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const handleTabChange = (tab: string) => {
+    setCurrentTab(tab);
+    onNavigate(tab === 'overview' ? '/admin' : `/admin/${tab}`);
+  };
 
   const renderTabContent = () => {
     switch (currentTab) {
@@ -49,7 +72,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
   return (
     <AdminLayout
       currentTab={currentTab}
-      onTabChange={setCurrentTab}
+      onTabChange={handleTabChange}
       onExitAdmin={() => onNavigate('/')}
     >
       {renderTabContent()}

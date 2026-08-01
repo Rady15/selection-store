@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { Order } from '../types';
+import { printTaxInvoice } from '../utils/printTaxInvoice';
 import {
   CheckCircle2,
   PackageCheck,
@@ -52,7 +53,7 @@ interface OrderConfirmationPageProps {
 
 export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ orderId, onNavigate }) => {
   const { language, t } = useLanguage();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, formatPriceString } = useCurrency();
   const [order, setOrder] = useState<Order | null>(null);
   const [notFound, setNotFound] = useState(false);
 
@@ -163,7 +164,7 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
           <div className="flex items-center justify-between border-b border-[#2A221E] pb-4">
             <h3 className="font-extrabold text-base text-white">{t('تفاصيل المنتجات والمحاصيل', 'Purchased Items')}</h3>
             <button
-              onClick={() => window.print()}
+              onClick={() => printTaxInvoice(order, { language, formatPrice: formatPriceString })}
               className="text-xs text-[#D99B26] hover:underline flex items-center gap-1 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -172,17 +173,19 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
           </div>
 
           <div className="space-y-3">
-            {order.items.map((item, idx) => (
+            {order.items.map((item: any, idx) => (
               <div key={idx} className="flex justify-between items-center text-xs text-[#D4C3B5] border-b border-[#2A221E]/60 pb-3">
                 <div>
                   <h5 className="font-bold text-white text-sm">
-                    {language === 'ar' ? item.product_name_ar : item.product_name_en}
+                    {language === 'ar' ? (item.product_name_ar || item.name_ar) : (item.product_name_en || item.name_en)}
                   </h5>
-                  <p className="text-[11px] text-[#A69B93]">
-                    {item.weight} • {item.grind} • الكمية: {item.quantity}
-                  </p>
+                  {item.weight && (
+                    <p className="text-[11px] text-[#A69B93]">
+                      {item.weight}{item.grind ? ` • ${item.grind}` : ''} • الكمية: {item.quantity}
+                    </p>
+                  )}
                 </div>
-                <span className="font-extrabold text-[#D99B26]">{formatPrice(item.total_price)}</span>
+                <span className="font-extrabold text-[#D99B26]">{formatPrice(typeof item.total_price === 'number' ? item.total_price : item.price)}</span>
               </div>
             ))}
           </div>
@@ -235,8 +238,8 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#D4C3B5]">
             <div className="space-y-1">
               <span className="text-[#A69B93] block">{t('العميل والمدينة', 'Customer & City')}</span>
-              <p className="font-bold text-white">{order.customer_name} ({order.shipping_address.city})</p>
-              <p>{order.shipping_address.district} - {order.shipping_address.street}</p>
+              <p className="font-bold text-white">{order.customer_name} ({order.shipping_address?.city})</p>
+              {order.shipping_address && <p>{order.shipping_address.district} - {order.shipping_address.street}</p>}
             </div>
 
             <div className="space-y-1">
