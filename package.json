@@ -9,6 +9,7 @@
     "build:vercel": "vite build",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
+    "migrate:pg": "tsx scripts/migrate-to-pg.ts",
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit"
   },
@@ -28,6 +29,7 @@
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "multer": "^2.2.0",
+    "pg": "^8.16.3",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "stripe": "^22.4.0",
@@ -40,6 +42,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.14.0",
+    "@types/pg": "^8.20.3",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",

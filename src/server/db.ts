@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
+import pg from 'pg';
 import {
   Product,
   Category,
@@ -28,18 +29,39 @@ const DATA_FILE = process.env.VERCEL === '1'
     ? path.resolve(process.cwd(), process.env.DATA_FILE)
     : path.join(process.cwd(), 'data-store.json');
 
-// Durable storage on Vercel: Vercel KV / Upstash Redis REST API.
-// The filesystem (/tmp) is per-lambda-instance and resets on cold starts,
-// so cross-request flows (create order -> create PaymentIntent) would
-// otherwise fail with "Order not found" once two requests land on
-// different instances. The whole store is kept under one KV key.
+// Durable storage priority:
+//   1. PostgreSQL (DATABASE_URL / POSTGRES_URL) — recommended for any real host.
+//   2. Vercel KV / Upstash Redis REST API — used on Vercel.
+//   3. Local flat file (data-store.json) — dev fallback.
+// The whole store is kept under a single document key in every durable backend.
+
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+const usePg = Boolean(DATABASE_URL);
+
+// Postgres is a network DB, so a small connection pool is enough. The store is
+// cached in memory (this.state) and only refreshed/flushed at request time, so
+// even one connection handles the traffic.
+const pgPool = usePg
+  ? new pg.Pool({
+      connectionString: DATABASE_URL,
+      max: 5,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000
+    })
+  : null;
+
+const PG_TABLE = 'app_state';
+const PG_LOCK_TABLE = 'store_lock';
+const PG_DOC_KEY = 'fursan_data_store';
+const PG_LOCK_KEY = 'fursan_data_store_lock';
+
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
 const KV_KEY = 'fursan_data_store';
 // Distributed mutex so a warm instance's refresh+mutate+flush cycle is atomic
 // across ALL serverless instances sharing the KV key (see acquireLock).
 const KV_LOCK_KEY = 'fursan_data_store_lock';
-const useKV = Boolean(KV_URL && KV_TOKEN);
+const useKV = !usePg && Boolean(KV_URL && KV_TOKEN);
 
 export interface DatabaseState {
   products: Product[];
@@ -1051,7 +1073,20 @@ class Database {
       quizConfig: initialQuizConfig
     };
 
-    if (useKV) {
+    if (usePg) {
+      // Ensure the table exists, then load the durable snapshot from Postgres
+      // and finally migrate the admin user. All reads await this.ready, so a
+      // request never serves pre-migration state.
+      this.ready = this.initPg()
+        .then(() => this.loadFromPg())
+        .then(() => {
+          this.migrateAdminUser();
+        })
+        .catch(err => {
+          console.error('Postgres init failed, falling back to seed state:', err);
+          this.migrateAdminUser();
+        });
+    } else if (useKV) {
       // Load the durable snapshot from KV first, then migrate the admin user.
       // All reads await this.ready, so a warm instance never serves stale state.
       this.ready = this.loadFromKV().then(() => {
@@ -1066,19 +1101,56 @@ class Database {
     }
   }
 
+  /** Creates the Postgres tables if they don't exist (idempotent). */
+  private async initPg(): Promise<void> {
+    if (!pgPool) return;
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS ${PG_TABLE} (
+        key        text PRIMARY KEY,
+        value      jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE TABLE IF NOT EXISTS ${PG_LOCK_TABLE} (
+        key        text PRIMARY KEY,
+        token      text,
+        expires_at timestamptz NOT NULL DEFAULT now()
+      );
+    `);
+  }
+
+  /** Loads the single-document store from Postgres, or seeds it if empty. */
+  private async loadFromPg(): Promise<void> {
+    if (!pgPool) return;
+    try {
+      const res = await pgPool.query('SELECT value FROM ' + PG_TABLE + ' WHERE key = $1', [PG_DOC_KEY]);
+      const row = res.rows[0] as { value: any } | undefined;
+      this._lastRemoteRefresh = Date.now();
+      if (row && row.value && typeof row.value === 'object') {
+        this.applyParsed(row.value);
+        return;
+      }
+    } catch (err) {
+      console.error('Error loading store from Postgres:', err);
+    }
+    // Nothing durable yet — persist the seed so future cold starts read it.
+    this._lastRemoteRefresh = Date.now();
+    this.saveState();
+  }
+
   /** Resolves once the durable store has been loaded (always resolved locally). */
   ready: Promise<void> = Promise.resolve();
 
-  /** Serialized write queue for KV so concurrent mutations can't clobber each other. */
-  private _kvWrite: Promise<void> = Promise.resolve();
+  /** Serialized write queue for remote stores (KV/Postgres) so concurrent
+   *  mutations can't clobber each other. */
+  private _remoteWrite: Promise<void> = Promise.resolve();
 
-  /** Incremented on every saveState() so a KV refresh never overwrites newer in-memory changes. */
+  /** Incremented on every saveState() so a remote refresh never overwrites newer in-memory changes. */
   private _mutGen = 0;
 
-  private _lastKvRefresh = 0;
+  private _lastRemoteRefresh = 0;
 
-  /** Incremented every time a queued KV write completes. A refresh result is
-   *  only applied if no write finished while the KV fetch was in flight —
+  /** Incremented every time a queued remote write completes. A refresh result is
+   *  only applied if no write finished while the fetch was in flight —
    *  otherwise the response may be an older snapshot and would clobber newer
    *  in-memory state that was already flushed. */
   private _flushGen = 0;
@@ -1123,7 +1195,7 @@ class Database {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
           this.applyParsed(parsed);
-          this._lastKvRefresh = Date.now();
+          this._lastRemoteRefresh = Date.now();
           return;
         }
       }
@@ -1131,31 +1203,39 @@ class Database {
       console.error('Error loading store from KV:', err);
     }
     // Nothing durable yet — persist the seed so future cold starts read it.
-    this._lastKvRefresh = Date.now();
+    this._lastRemoteRefresh = Date.now();
     this.saveState();
   }
 
   /**
    * Re-reads the durable snapshot into memory at most once per interval.
-   * On Vercel multiple warm instances share one KV key, so a request may hit
-   * an instance whose in-memory copy is older than the last mutation made by
-   * another instance (e.g. the webhook marking an order paid). Called by the
-   * request middleware before handling. Local runs (file store) are a no-op.
+   * Multiple instances share one durable key (KV or Postgres), so a request
+   * may hit an instance whose in-memory copy is older than the last mutation
+   * made by another instance (e.g. the webhook marking an order paid). Called
+   * by the request middleware before handling. Local runs (file store) are a
+   * no-op.
    */
   async refreshIfStale(intervalMs = 2000): Promise<void> {
-    if (!useKV) return;
+    if (!useKV && !usePg) return;
     const now = Date.now();
-    if (now - this._lastKvRefresh < intervalMs) return;
+    if (now - this._lastRemoteRefresh < intervalMs) return;
     const genAtStart = this._mutGen;
     const flushGenAtStart = this._flushGen;
     try {
-      const res = await fetch(`${KV_URL}/get/${KV_KEY}`, {
-        headers: { Authorization: `Bearer ${KV_TOKEN}` }
-      });
-      const data = await res.json() as any;
-      const raw = data?.result ?? data?.value ?? null;
-      this._lastKvRefresh = Date.now();
-      if (raw && typeof raw === 'string') {
+      let raw: string | null = null;
+      if (usePg && pgPool) {
+        const res = await pgPool.query('SELECT value FROM ' + PG_TABLE + ' WHERE key = $1', [PG_DOC_KEY]);
+        const row = res.rows[0] as { value: any } | undefined;
+        if (row && row.value) raw = JSON.stringify(row.value);
+      } else {
+        const res = await fetch(`${KV_URL}/get/${KV_KEY}`, {
+          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        });
+        const data = await res.json() as any;
+        raw = data?.result ?? data?.value ?? null;
+      }
+      this._lastRemoteRefresh = Date.now();
+      if (raw) {
         const parsed = JSON.parse(raw);
         // Only apply if no local mutation AND no local flush landed while the
         // fetch was in flight (the response may predate that flush).
@@ -1166,8 +1246,8 @@ class Database {
         }
       }
     } catch (err) {
-      console.error('KV refresh error (serving from memory):', err);
-      this._lastKvRefresh = Date.now();
+      console.error('Store refresh error (serving from memory):', err);
+      this._lastRemoteRefresh = Date.now();
     }
   }
 
@@ -1189,11 +1269,22 @@ class Database {
   private saveState() {
     this._mutGen += 1;
     const payload = JSON.stringify(this.state, null, 2);
-    if (useKV) {
+    if (usePg && pgPool) {
       // Fire-and-forget but serialized: every mutation enqueues behind the
       // previous write. Call flush() on critical routes to guarantee the
       // snapshot is durable before the request responds.
-      this._kvWrite = this._kvWrite.then(() =>
+      this._remoteWrite = this._remoteWrite.then(() =>
+        pgPool.query(
+          'INSERT INTO ' + PG_TABLE + ' (key, value, updated_at) VALUES ($1, $2::jsonb, now()) ' +
+          'ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()',
+          [PG_DOC_KEY, JSON.stringify(this.state)]
+        ).then(() => {}).catch(err => console.error('Postgres save error:', err))
+      ).then(() => { this._flushGen += 1; });
+    } else if (useKV) {
+      // Fire-and-forget but serialized: every mutation enqueues behind the
+      // previous write. Call flush() on critical routes to guarantee the
+      // snapshot is durable before the request responds.
+      this._remoteWrite = this._remoteWrite.then(() =>
         fetch(`${KV_URL}/set/${KV_KEY}`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
@@ -1213,19 +1304,41 @@ class Database {
 
   /** Waits until all pending writes to the durable store have completed. */
   async flush() {
-    if (useKV) {
-      await this._kvWrite;
+    if (usePg || useKV) {
+      await this._remoteWrite;
     }
   }
 
   /**
-   * Acquires a cross-instance mutex (SET NX EX) so the refresh -> mutate ->
-   * flush cycle of one request is atomic across all warm serverless
-   * instances. Without it, a warm instance can overwrite the durable
-   * snapshot with an older in-memory copy, making recent orders disappear.
-   * Returns null locally (single process, file store).
+   * Acquires a cross-instance mutex so the refresh -> mutate -> flush cycle of
+   * one request is atomic across all instances sharing the durable store.
+   * Without it, a warm instance can overwrite the durable snapshot with an
+   * older in-memory copy, making recent orders disappear. Returns null locally
+   * (single process, file store).
+   *
+   * Postgres uses a lease row (compare-and-set on a TTL, same semantics as the
+   * KV SET NX EX pattern). KV uses SET NX EX.
    */
   async acquireLock(): Promise<string | null> {
+    if (usePg && pgPool) {
+      const token = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      for (let attempt = 0; attempt < 40; attempt++) {
+        try {
+          const res = await pgPool.query(
+            'INSERT INTO ' + PG_LOCK_TABLE + ' (key, token, expires_at) VALUES ($1, $2, now() + interval \'15 seconds\') ' +
+            'ON CONFLICT (key) DO UPDATE SET token = EXCLUDED.token, expires_at = EXCLUDED.expires_at ' +
+            'WHERE ' + PG_LOCK_TABLE + '.expires_at < now() ' +
+            'RETURNING token',
+            [PG_LOCK_KEY, token]
+          );
+          if (res.rows[0]?.token === token) return token;
+        } catch (err) {
+          console.error('Postgres lock acquire error:', err);
+        }
+        await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+      }
+      throw new Error('Timed out waiting for the store write lock');
+    }
     if (!useKV) return null;
     const token = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     for (let attempt = 0; attempt < 40; attempt++) {
@@ -1247,7 +1360,19 @@ class Database {
 
   /** Releases the lock only if we still own it (the TTL may have expired it). */
   async releaseLock(token: string | null): Promise<void> {
-    if (!useKV || !token) return;
+    if (!token) return;
+    if (usePg && pgPool) {
+      try {
+        await pgPool.query(
+          'DELETE FROM ' + PG_LOCK_TABLE + ' WHERE key = $1 AND token = $2',
+          [PG_LOCK_KEY, token]
+        );
+      } catch (err) {
+        console.error('Postgres lock release error:', err);
+      }
+      return;
+    }
+    if (!useKV) return;
     try {
       const res = await fetch(`${KV_URL}/get/${KV_LOCK_KEY}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` }
