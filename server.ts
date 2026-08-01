@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import jwt from 'jsonwebtoken';
@@ -57,10 +58,15 @@ app.use('/api', async (req, res, next) => {
   next();
 });
 
-// File upload configuration
+// File upload configuration.
+// The uploads folder is re-created on every boot: `public/uploads` is
+// gitignored, so fresh deployments (Railway, VPS, ...) start without it.
+const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(process.cwd(), 'public', 'uploads'));
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    cb(null, uploadsDir);
   },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -82,7 +88,7 @@ const upload = multer({
 });
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
 
 // Upload endpoint
 app.post('/api/upload', upload.single('image'), (req, res) => {
