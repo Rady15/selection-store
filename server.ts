@@ -154,6 +154,7 @@ app.post('/api/auth/login', (req, res) => {
   if (user.password && user.password !== password) {
     return res.status(401).json({ error_ar: 'اسم المستخدم أو كلمة المرور غير صحيحة', error_en: 'Invalid credentials' });
   }
+  db.linkOrdersToUser(user.id, user.email);
   res.json({ user, token: signToken(user) });
 });
 
@@ -176,6 +177,7 @@ app.post('/api/auth/register', (req, res) => {
     password
   });
 
+  db.linkOrdersToUser(user.id, user.email);
   res.json({ user, token: signToken(user) });
 });
 
@@ -256,6 +258,7 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
+    db.linkOrdersToUser(user.id, user.email);
     res.json({ user, token: signToken(user) });
   } catch (err) {
     res.status(400).json({

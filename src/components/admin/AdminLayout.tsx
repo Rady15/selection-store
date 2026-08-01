@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { usePolling } from '../../hooks/usePolling';
 import {
   LayoutDashboard,
   Package,
@@ -44,10 +45,18 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [newOrders, setNewOrders] = useState<any[]>([]);
   const [notification, setNotification] = useState<{ visible: boolean; count: number }>({ visible: false, count: 0 });
 
-  const POLL_INTERVAL = 15000;
+  const POLL_INTERVAL = 3000;
+
+  // Seed the "last checked" timestamp on first visit so we don't notify the
+  // admin about every historical order.
+  useEffect(() => {
+    if (!localStorage.getItem('admin_orders_last_checked')) {
+      localStorage.setItem('admin_orders_last_checked', new Date().toISOString());
+    }
+  }, []);
 
   const checkNewOrders = useCallback(async () => {
-    const lastChecked = localStorage.getItem('admin_orders_last_checked') || new Date(0).toISOString();
+    const lastChecked = localStorage.getItem('admin_orders_last_checked') || new Date().toISOString();
     try {
       const res = await fetch(`/api/admin/orders/new?since=${encodeURIComponent(lastChecked)}`);
       if (!res.ok) return;
@@ -62,11 +71,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     }
   }, []);
 
-  useEffect(() => {
-    checkNewOrders();
-    const interval = setInterval(checkNewOrders, POLL_INTERVAL);
-    return () => clearInterval(interval);
-  }, [checkNewOrders]);
+  usePolling(checkNewOrders, POLL_INTERVAL);
 
   const dismissNotification = () => {
     setNotification({ visible: false, count: 0 });

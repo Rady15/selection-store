@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
+import { usePolling } from '../hooks/usePolling';
 import { Order, Product, Address, Review, OrderItem } from '../types';
 import ProductGrid from '../components/storefront/ProductGrid';
 import {
@@ -86,14 +87,19 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
     }
   }, [user]);
 
-  useEffect(() => {
-    if (user) {
-      fetch(`/api/orders?user_id=${user.id}`)
-        .then(res => res.json())
-        .then(data => setOrders(data))
-        .catch(err => console.error(err));
-    }
+  const loadOrders = useCallback(() => {
+    if (!user) return;
+    fetch(`/api/orders?user_id=${user.id}`)
+      .then(res => res.json())
+      .then(data => setOrders(prev => {
+        if (prev.length === data.length && JSON.stringify(prev) === JSON.stringify(data)) return prev;
+        return data;
+      }))
+      .catch(err => console.error(err));
   }, [user]);
+
+  // Refresh the user's orders in real time so status changes show instantly.
+  usePolling(loadOrders, 3000, !!user);
 
   useEffect(() => {
     if (wishlistIds.length > 0) {

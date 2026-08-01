@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { usePolling } from '../../hooks/usePolling';
 import { Order, OrderStatus } from '../../types';
 import { ShoppingBag, Eye, X, Trash2, Printer, Loader2 } from 'lucide-react';
 
@@ -29,8 +30,6 @@ export const AdminOrdersManager: React.FC = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => { loadOrders(); }, []);
-
   // A paid order is always shown as "تم الدفع" (Paid) even if the fulfillment
   // status was never bumped from pending (e.g. paid via Tabby/Tamara).
   const getEffectiveStatus = (o: Order): OrderStatus =>
@@ -42,9 +41,15 @@ export const AdminOrdersManager: React.FC = () => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then(data => setOrders(data))
+      .then(data => setOrders(prev => {
+        if (prev.length === data.length && JSON.stringify(prev) === JSON.stringify(data)) return prev;
+        return data;
+      }))
       .catch(err => console.error(err));
   };
+
+  // Poll frequently so new orders and status changes show up in real time.
+  usePolling(loadOrders, 3000);
 
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     setUpdatingId(orderId);

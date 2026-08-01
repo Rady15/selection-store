@@ -1430,9 +1430,36 @@ class Database {
   // Orders
   getOrders(user_id?: string) {
     if (user_id) {
-      return this.state.orders.filter(o => o.user_id === user_id).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const user = this.getUserById(user_id);
+      const userEmail = user?.email ? String(user.email).trim().toLowerCase() : '';
+      return this.state.orders
+        .filter(o => {
+          if (o.user_id === user_id) return true;
+          // Guest orders (no user_id) are linked to the account by email so
+          // the customer can see every order they placed under that email.
+          if (userEmail && o.email && String(o.email).trim().toLowerCase() === userEmail) return true;
+          return false;
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
     return [...this.state.orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  /**
+   * Backfills user_id on past guest orders whose email matches the given
+   * account, so login/registration ties historical orders to the user.
+   */
+  linkOrdersToUser(userId: string, email: string) {
+    if (!userId || !email) return;
+    const targetEmail = String(email).trim().toLowerCase();
+    let changed = false;
+    for (const o of this.state.orders) {
+      if (!o.user_id && o.email && String(o.email).trim().toLowerCase() === targetEmail) {
+        o.user_id = userId;
+        changed = true;
+      }
+    }
+    if (changed) this.saveState();
   }
 
   getNewOrdersSince(since: string) {
@@ -1546,6 +1573,10 @@ class Database {
     }
 
     this.state.orders.push(newOrder);
+    // Tie any earlier guest orders placed with the same email to this user.
+    if (newOrder.user_id && newOrder.email) {
+      this.linkOrdersToUser(newOrder.user_id, newOrder.email);
+    }
     this.saveState();
     return newOrder;
   }
@@ -1680,8 +1711,14 @@ class Database {
   }
 
   hasDeliveredPurchase(userId: string, productId: string) {
+    const user = this.getUserById(userId);
+    const userEmail = user?.email ? String(user.email).trim().toLowerCase() : '';
     return this.state.orders.some(
-      o => o.user_id === userId && o.status === 'delivered' && o.items.some(i => i.product_id === productId)
+      o =>
+        (o.user_id === userId ||
+          (userEmail && o.email && String(o.email).trim().toLowerCase() === userEmail)) &&
+        o.status === 'delivered' &&
+        o.items.some(i => i.product_id === productId)
     );
   }
 

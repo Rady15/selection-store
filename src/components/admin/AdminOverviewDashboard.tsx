@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { usePolling } from '../../hooks/usePolling';
 import {
   DollarSign,
   ShoppingBag,
@@ -19,11 +20,9 @@ export const AdminOverviewDashboard: React.FC = () => {
   const { formatPrice } = useCurrency();
 
   const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [newOrdersToday, setNewOrdersToday] = useState(0);
 
   const fetchStats = useCallback(async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/admin/stats');
       if (!res.ok) { console.error('API error:', res.status); return; }
@@ -32,7 +31,6 @@ export const AdminOverviewDashboard: React.FC = () => {
     } catch (err) {
       console.error('Failed to load dashboard stats:', err);
     }
-    setLoading(false);
   }, []);
 
   const checkNewOrders = useCallback(async () => {
@@ -48,14 +46,9 @@ export const AdminOverviewDashboard: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchStats();
-    checkNewOrders();
-    const interval = setInterval(() => { fetchStats(); checkNewOrders(); }, 30000);
-    return () => clearInterval(interval);
-  }, [fetchStats, checkNewOrders]);
+  usePolling(() => { fetchStats(); checkNewOrders(); }, 6000);
 
-  if (loading) {
+  if (!stats) {
     return (
       <div className="space-y-8 animate-fade-in">
         <div className="flex items-center justify-between">
