@@ -36,6 +36,9 @@ const DATA_FILE = process.env.VERCEL === '1'
 const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
 const KV_KEY = 'fursan_data_store';
+// Distributed mutex so a warm instance's refresh+mutate+flush cycle is atomic
+// across ALL serverless instances sharing the KV key (see acquireLock).
+const KV_LOCK_KEY = 'fursan_data_store_lock';
 const useKV = Boolean(KV_URL && KV_TOKEN);
 
 export interface DatabaseState {
@@ -1074,6 +1077,12 @@ class Database {
 
   private _lastKvRefresh = 0;
 
+  /** Incremented every time a queued KV write completes. A refresh result is
+   *  only applied if no write finished while the KV fetch was in flight —
+   *  otherwise the response may be an older snapshot and would clobber newer
+   *  in-memory state that was already flushed. */
+  private _flushGen = 0;
+
   private applyParsed(parsed: any) {
     this.state = {
       ...this.state,
@@ -1138,6 +1147,7 @@ class Database {
     const now = Date.now();
     if (now - this._lastKvRefresh < intervalMs) return;
     const genAtStart = this._mutGen;
+    const flushGenAtStart = this._flushGen;
     try {
       const res = await fetch(`${KV_URL}/get/${KV_KEY}`, {
         headers: { Authorization: `Bearer ${KV_TOKEN}` }
@@ -1147,7 +1157,11 @@ class Database {
       this._lastKvRefresh = Date.now();
       if (raw && typeof raw === 'string') {
         const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object' && genAtStart === this._mutGen) {
+        // Only apply if no local mutation AND no local flush landed while the
+        // fetch was in flight (the response may predate that flush).
+        if (parsed && typeof parsed === 'object'
+          && genAtStart === this._mutGen
+          && this._flushGen === flushGenAtStart) {
           this.applyParsed(parsed);
         }
       }
@@ -1187,7 +1201,7 @@ class Database {
         }).then(res => {
           if (!res.ok) console.error('KV save error:', res.status, res.statusText);
         }).catch(err => console.error('KV save error:', err))
-      );
+      ).then(() => { this._flushGen += 1; });
     } else {
       try {
         fs.writeFileSync(DATA_FILE, payload, 'utf-8');
@@ -1201,6 +1215,52 @@ class Database {
   async flush() {
     if (useKV) {
       await this._kvWrite;
+    }
+  }
+
+  /**
+   * Acquires a cross-instance mutex (SET NX EX) so the refresh -> mutate ->
+   * flush cycle of one request is atomic across all warm serverless
+   * instances. Without it, a warm instance can overwrite the durable
+   * snapshot with an older in-memory copy, making recent orders disappear.
+   * Returns null locally (single process, file store).
+   */
+  async acquireLock(): Promise<string | null> {
+    if (!useKV) return null;
+    const token = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      try {
+        const res = await fetch(`${KV_URL}/set/${KV_LOCK_KEY}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: token, nx: true, ex: 15 })
+        });
+        const data = await res.json() as any;
+        if (data === 'OK' || data?.result === 'OK') return token;
+      } catch (err) {
+        console.error('KV lock acquire error:', err);
+      }
+      await new Promise(r => setTimeout(r, 100 + Math.random() * 150));
+    }
+    throw new Error('Timed out waiting for the store write lock');
+  }
+
+  /** Releases the lock only if we still own it (the TTL may have expired it). */
+  async releaseLock(token: string | null): Promise<void> {
+    if (!useKV || !token) return;
+    try {
+      const res = await fetch(`${KV_URL}/get/${KV_LOCK_KEY}`, {
+        headers: { Authorization: `Bearer ${KV_TOKEN}` }
+      });
+      const data = await res.json() as any;
+      const current = data?.result ?? data?.value ?? null;
+      if (current === token) {
+        await fetch(`${KV_URL}/del/${KV_LOCK_KEY}`, {
+          headers: { Authorization: `Bearer ${KV_TOKEN}` }
+        });
+      }
+    } catch (err) {
+      console.error('KV lock release error:', err);
     }
   }
 
@@ -1517,6 +1577,24 @@ class Database {
       const smsaTracking = `SMSA${Math.floor(100000000000 + Math.random() * 900000000000)}`;
       newOrder.tracking_number = smsaTracking;
       newOrder.tracking_url = `https://www.smsaexpress.com/tracking/${smsaTracking}`;
+    }
+
+    // Never persist an order without a shipping_address — the dashboards and
+    // the tax-invoice printer render it, and a missing object crashes them.
+    const address = newOrder.shipping_address;
+    if (!address || typeof address !== 'object') {
+      newOrder.shipping_address = {
+        id: `addr-${Date.now()}`,
+        title: '',
+        full_name: newOrder.customer_name || '',
+        phone: newOrder.phone || '',
+        country: 'المملكة العربية السعودية',
+        city: '',
+        district: '',
+        street: '',
+        building: '',
+        is_default: false
+      };
     }
 
     // Deduct stock

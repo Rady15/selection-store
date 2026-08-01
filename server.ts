@@ -18,12 +18,42 @@ const signToken = (user: any) =>
 app.use(express.json({ verify: (req: any, _res, buf) => { req.rawBody = buf; } }));
 
 // Wait until the durable store is loaded (no-op locally) before handling
-// any request — on Vercel the DB boots from KV asynchronously. Also re-syncs
-// from KV at most every 2s so warm instances see mutations made by others
-// (e.g. the Stripe webhook marking an order paid).
-app.use('/api', async (_req, _res, next) => {
+// any request — on Vercel the DB boots from KV asynchronously.
+// Reads re-sync from KV at most every 2s so warm instances see mutations
+// made by others (e.g. the Stripe webhook marking an order paid).
+// Mutating requests (POST/PUT/PATCH/DELETE) additionally acquire a
+// cross-instance KV lock and re-read the latest snapshot BEFORE the handler
+// runs, then flush + release once the response is sent. This makes every
+// read-modify-write atomic across warm instances, so an instance can never
+// overwrite the durable snapshot with an older in-memory copy (which erased
+// recently created orders).
+app.use('/api', async (req, res, next) => {
   try { await db.ready; } catch { /* fall back to in-memory state */ }
-  try { await db.refreshIfStale(); } catch { /* serve from memory */ }
+
+  const method = req.method.toUpperCase();
+  const isSafe = method === 'GET' || method === 'HEAD' || method === 'OPTIONS';
+
+  if (isSafe) {
+    try { await db.refreshIfStale(); } catch { /* serve from memory */ }
+    return next();
+  }
+
+  let token: string | null = null;
+  try {
+    token = await db.acquireLock();
+  } catch (err) {
+    console.error('Store lock timeout', err);
+    return res.status(503).json({ error_ar: 'المتجر مشغول، حاول مرة أخرى', error_en: 'Store is busy, please retry' });
+  }
+
+  try { await db.refreshIfStale(0); } catch { /* serve from memory */ }
+
+  res.on('finish', () => {
+    db.flush()
+      .catch(() => {})
+      .finally(() => db.releaseLock(token).catch(() => {}));
+  });
+
   next();
 });
 
@@ -359,10 +389,6 @@ app.put('/api/orders/:id/status', async (req, res) => {
     return res.status(400).json({ error_ar: 'يرجى تحديد الحالة الجديدة', error_en: 'New status is required' });
   }
   try {
-    // Force a re-read of the durable snapshot before mutating so a warm
-    // instance never writes stale (older) state over the latest snapshot —
-    // otherwise recent orders created on other instances get erased.
-    await db.refreshIfStale(0);
     const order = db.updateOrderStatus(req.params.id, status, note_ar, note_en);
     if (!order) {
       return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
@@ -388,7 +414,6 @@ app.get('/api/admin/orders', (req, res) => {
 app.put('/api/admin/orders/:id', async (req, res) => {
   const { status, note_ar, note_en } = req.body || {};
   try {
-    await db.refreshIfStale(0);
     const order = db.updateOrderStatus(req.params.id, status, note_ar, note_en);
     if (!order) {
       return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
