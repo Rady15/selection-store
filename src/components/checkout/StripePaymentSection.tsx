@@ -7,7 +7,7 @@ import { Lock, ShieldCheck, X } from 'lucide-react';
 interface StripePaymentSectionProps {
   publishableKey: string;
   clientSecret: string;
-  orderId: string;
+  paymentIntentId: string;
   customerName: string;
   email: string;
   phone: string;
@@ -16,13 +16,13 @@ interface StripePaymentSectionProps {
 }
 
 const PaymentForm: React.FC<{
-  orderId: string;
+  paymentIntentId: string;
   clientSecret: string;
   customerName: string;
   email: string;
   phone: string;
   onSuccess: () => void;
-}> = ({ orderId, clientSecret, customerName, email, phone, onSuccess }) => {
+}> = ({ paymentIntentId, clientSecret, customerName, email, phone, onSuccess }) => {
   const { language, t } = useLanguage();
   const stripe = useStripe();
   const elements = useElements();
@@ -64,12 +64,12 @@ const PaymentForm: React.FC<{
     }, 30000);
 
     try {
-      console.log('[Stripe] confirmPayment called', { orderId, clientSecretPresent: !!clientSecret });
+      console.log('[Stripe] confirmPayment called', { paymentIntentId, clientSecretPresent: !!clientSecret });
       const { error: confirmError, paymentIntent } = await stripe!.confirmPayment({
         elements: elements!,
         redirect: 'if_required',
         confirmParams: {
-          return_url: `${window.location.origin}/order-confirmation/${orderId}`,
+          return_url: `${window.location.origin}/checkout?pi=${paymentIntentId}`,
           // Billing details are collected by the Payment Element itself
           // (default "auto"). We prefill what the customer already gave us
           // during checkout, and always supply address.country so Stripe
@@ -99,7 +99,7 @@ const PaymentForm: React.FC<{
 
       switch (status) {
         case 'succeeded':
-          console.log('[Stripe] paymentIntent succeeded — redirecting to confirmation', { orderId, pi: paymentIntent?.id });
+          console.log('[Stripe] paymentIntent succeeded — confirming order', { pi: paymentIntent?.id });
           onSuccess();
           break;
         case 'processing':
@@ -162,7 +162,7 @@ const PaymentForm: React.FC<{
 export const StripePaymentSection: React.FC<StripePaymentSectionProps> = ({
   publishableKey,
   clientSecret,
-  orderId,
+  paymentIntentId,
   customerName,
   email,
   phone,
@@ -200,7 +200,7 @@ export const StripePaymentSection: React.FC<StripePaymentSectionProps> = ({
         options={{ clientSecret, appearance: { theme: 'night' } }}
       >
         <PaymentForm
-          orderId={orderId}
+          paymentIntentId={paymentIntentId}
           clientSecret={clientSecret}
           customerName={customerName}
           email={email}

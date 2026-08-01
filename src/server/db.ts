@@ -81,6 +81,10 @@ export interface DatabaseState {
   newsletterSubscribers: any[];
   banners: Banner[];
   quizConfig: QuizConfig;
+  // Stripe payments are only persisted as orders AFTER the payment succeeds.
+  // Until then the full order payload is staged here keyed by payment_intent_id
+  // (or a temporary sandbox key) so nothing appears in the dashboards early.
+  pendingPayments: Record<string, any>;
 }
 
 const initialCategories: Category[] = [
@@ -1070,7 +1074,8 @@ class Database {
       contactSubmissions: [],
       newsletterSubscribers: [],
       banners: [],
-      quizConfig: initialQuizConfig
+      quizConfig: initialQuizConfig,
+      pendingPayments: {}
     };
 
     if (usePg) {
@@ -1180,7 +1185,8 @@ class Database {
       contactSubmissions: parsed.contactSubmissions || [],
       newsletterSubscribers: parsed.newsletterSubscribers || [],
       banners: parsed.banners || [],
-      quizConfig: Array.isArray(parsed.quizConfig) ? { ...initialQuizConfig, questions: parsed.quizConfig } : (parsed.quizConfig?.questions ? parsed.quizConfig : initialQuizConfig)
+      quizConfig: Array.isArray(parsed.quizConfig) ? { ...initialQuizConfig, questions: parsed.quizConfig } : (parsed.quizConfig?.questions ? parsed.quizConfig : initialQuizConfig),
+      pendingPayments: parsed.pendingPayments || {}
     };
   }
 
@@ -1658,6 +1664,27 @@ class Database {
 
   getOrderById(id: string) {
     return this.state.orders.find(o => o.id === id);
+  }
+
+  getOrderByPaymentIntent(paymentIntentId: string) {
+    return this.state.orders.find(o => o.payment_intent_id === paymentIntentId);
+  }
+
+  getPendingPayment(key: string) {
+    return (this.state.pendingPayments || {})[key] || null;
+  }
+
+  savePendingPayment(key: string, data: any) {
+    if (!this.state.pendingPayments) this.state.pendingPayments = {};
+    this.state.pendingPayments[key] = data;
+    this.saveState();
+  }
+
+  removePendingPayment(key: string) {
+    if (this.state.pendingPayments && this.state.pendingPayments[key]) {
+      delete this.state.pendingPayments[key];
+      this.saveState();
+    }
   }
 
   updateOrderTracking(orderId: string, trackingNumber: string, trackingUrl: string) {

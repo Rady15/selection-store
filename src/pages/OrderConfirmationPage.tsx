@@ -319,6 +319,21 @@ export const OrderConfirmationPage: React.FC<OrderConfirmationPageProps> = ({ or
           </div>
         )}
 
+        {/* Track Order Action */}
+        <div className="p-4 rounded-3xl bg-[#1C1613] border border-[#2A221E] flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-[#D4C3B5]">
+            <Truck className="w-4 h-4 text-[#D99B26]" />
+            <span>{t('تابع حالة طلبك لحظة بلحظة', 'Follow your order status in real time')}</span>
+          </div>
+          <button
+            onClick={() => onNavigate(`/track-order/${encodeURIComponent(order.order_number)}`)}
+            className="bg-[#8C532B] hover:bg-[#A86434] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer inline-flex items-center gap-2"
+          >
+            <Truck className="w-4 h-4" />
+            {t('تتبع الطلب', 'Track Order')}
+          </button>
+        </div>
+
         {/* Home Action button */}
         <div className="text-center pt-4">
           <button

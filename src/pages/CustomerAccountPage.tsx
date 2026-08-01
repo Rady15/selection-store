@@ -421,7 +421,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
                   <div className="flex justify-between items-center pt-3 border-t border-[#2A221E]">
                     <span className="text-xs text-[#A69B93]">{t('الإجمالي:', 'Total:')} <strong className="text-white text-sm font-extrabold">{formatPrice(ord.total_amount)}</strong></span>
                     <button
-                      onClick={() => onNavigate(`/order-confirmation/${ord.id}`)}
+                      onClick={() => onNavigate(`/track-order/${encodeURIComponent(ord.order_number)}`)}
                       className="text-xs text-[#D99B26] hover:underline cursor-pointer"
                     >
                       {t('تتبع وحالة الشحنة ←', 'Track Shipment →')}

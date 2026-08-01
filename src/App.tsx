@@ -147,6 +147,11 @@ function MainApp() {
       return <TrackOrderPage onNavigate={navigate} />;
     }
 
+    if (currentPath.startsWith('/track-order/')) {
+      const orderNumber = decodeURIComponent(currentPath.replace('/track-order/', ''));
+      return <TrackOrderPage orderNumber={orderNumber} onNavigate={navigate} />;
+    }
+
     if (currentPath === '/blog') {
       return <BlogPage onNavigate={navigate} />;
     }

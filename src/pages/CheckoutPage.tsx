@@ -64,6 +64,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const [paymentMode, setPaymentMode] = useState<'sandbox' | 'live' | null>(null);
   const [clientSecret, setClientSecret] = useState('');
   const [publishableKey, setPublishableKey] = useState('');
+  const [paymentIntentId, setPaymentIntentId] = useState('');
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paymentError, setPaymentError] = useState('');
 
@@ -99,6 +100,36 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
       })
       .catch(() => {});
   }, [user]);
+
+  // Return from a 3D-Secure / redirect bank step: the payment succeeded on the
+  // Stripe side, so confirm it now (this also creates the order).
+  useEffect(() => {
+    const pi = new URLSearchParams(window.location.search).get('pi');
+    if (!pi) return;
+    setPaymentBusy(true);
+    setPaymentError('');
+    fetch('/api/payments/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_intent_id: pi })
+    })
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok || !data.id) {
+          setPendingOrder({});
+          setPaymentError(data.error_ar || data.error_en || t('تعذر تأكيد الدفع، أعد المحاولة', 'Could not confirm payment, please retry'));
+          return;
+        }
+        clearCart();
+        onNavigate(`/order-confirmation/${data.id}`);
+      })
+      .catch(() => {
+        setPendingOrder({});
+        setPaymentError(t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+      })
+      .finally(() => setPaymentBusy(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,28 +185,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
     };
 
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
-      });
-      const data = await res.json();
-      setIsSubmitting(false);
-
-      if (!data.id) {
-        alert(t('حدث خطأ أثناء معالجة الطلب', 'Failed to place order'));
-        return;
-      }
-
       if (isStripeMethod) {
-        setPendingOrder(data);
+        // Card payments: the order is only created AFTER the payment succeeds
+        // (status = paid). For now we just stage the payload and open the
+        // payment modal, so no pending order shows up early.
+        setPendingOrder(orderPayload);
+        setPaymentError('');
         setPaymentBusy(true);
         try {
           const cfg = await fetch('/api/payments/config').then(r => r.json()).catch(() => ({ mode: 'sandbox', publishable_key: '' }));
           const intent = await fetch('/api/payments/create-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_id: data.id })
+            body: JSON.stringify({ order: orderPayload })
           }).then(r => r.json());
           console.log('[Stripe] /api/payments/config:', cfg);
           console.log('[Stripe] /api/payments/create-intent:', intent);
@@ -193,6 +215,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
             setPaymentMode(intent.mode || cfg.mode || 'sandbox');
             setClientSecret(intent.client_secret || '');
             setPublishableKey(cfg.publishable_key || '');
+            setPaymentIntentId(intent.payment_intent_id || '');
           }
         } catch (err) {
           console.error('[Stripe] prepare-payment threw:', err);
@@ -200,6 +223,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
         }
         setPaymentBusy(false);
       } else {
+        // Cash on delivery: create the order immediately (payment pending,
+        // collected on delivery).
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload)
+        });
+        const data = await res.json();
+        if (!data.id) {
+          alert(t('حدث خطأ أثناء معالجة الطلب', 'Failed to place order'));
+          return;
+        }
         clearCart();
         onNavigate(`/order-confirmation/${data.id}`);
       }
@@ -210,16 +245,40 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
     }
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     if (!pendingOrder) return;
-    clearCart();
-    onNavigate(`/order-confirmation/${pendingOrder.id}`);
+    setPaymentBusy(true);
+    setPaymentError('');
+    try {
+      if (paymentMode === 'sandbox') {
+        await handleSandboxPay();
+        return;
+      }
+      const res = await fetch('/api/payments/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_intent_id: paymentIntentId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.id) {
+        setPaymentError(data.error_ar || data.error_en || t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+        return;
+      }
+      clearCart();
+      onNavigate(`/order-confirmation/${data.id}`);
+    } catch (err) {
+      console.error(err);
+      setPaymentError(t('خطأ بالاتصال بالسيرفر', 'Server error occurred'));
+    } finally {
+      setPaymentBusy(false);
+    }
   };
 
   const handlePaymentCancel = () => {
     setPendingOrder(null);
     setPaymentMode(null);
     setClientSecret('');
+    setPaymentIntentId('');
     setPaymentError('');
   };
 
@@ -231,18 +290,19 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
       const res = await fetch('/api/payments/sandbox-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: pendingOrder.id })
+        body: JSON.stringify({ order: pendingOrder })
       });
       const data = await res.json();
-      if (data.success) {
-        handlePaymentSuccess();
-      } else {
+      if (!res.ok || !data.id) {
         setPaymentError(data.error_ar || data.error_en || t('فشل إتمام الدفع', 'Payment failed'));
-        setPaymentBusy(false);
+        return;
       }
+      clearCart();
+      onNavigate(`/order-confirmation/${data.id}`);
     } catch (err) {
       console.error(err);
       setPaymentError(t('خطأ بالاتصال بالسيرفر', 'Server error occurred'));
+    } finally {
       setPaymentBusy(false);
     }
   };
@@ -576,7 +636,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                 <span>{t('إتمام الدفع الآمن', 'Complete Secure Payment')}</span>
               </h3>
               <p className="text-xs text-[#D4C3B5] mb-5">
-                {t('الطلب رقم', 'Order')} <span className="text-white font-bold">{pendingOrder.order_number}</span>
+                {t('سيتم تأكيد طلبك تلقائياً بعد نجاح الدفع.', 'Your order will be confirmed automatically once payment succeeds.')}
                 {' · '}{t('المبلغ', 'Amount')}: <span className="text-[#D99B26] font-extrabold">{formatPrice(finalPayableTotal)}</span>
               </p>
 
@@ -588,7 +648,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                 <div className="space-y-4">
                   <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2">{paymentError}</p>
                   <button
-                    onClick={() => { setPaymentError(''); setPaymentMode(null); setClientSecret(''); }}
+                    onClick={() => { setPaymentError(''); setPaymentMode(null); setClientSecret(''); setPendingOrder(null); }}
                     className="w-full bg-[#8C532B] hover:bg-[#A86434] text-white py-3 rounded-2xl text-xs font-extrabold transition cursor-pointer"
                   >
                     {t('إعادة المحاولة', 'Retry')}
@@ -597,14 +657,14 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                     onClick={handlePaymentCancel}
                     className="w-full text-[#A69B93] hover:text-white py-2 rounded-2xl text-xs font-bold transition cursor-pointer"
                   >
-                    {t('إلغاء وإبقاء الطلب قيد الانتظار', 'Cancel (order stays pending)')}
+                    {t('إلغاء الدفع (لن يتم إنشاء الطلب)', 'Cancel payment (no order will be created)')}
                   </button>
                 </div>
               ) : paymentMode === 'live' ? (
                 <StripePaymentSection
                   publishableKey={publishableKey}
                   clientSecret={clientSecret}
-                  orderId={pendingOrder.id}
+                  paymentIntentId={paymentIntentId}
                   customerName={customerName}
                   email={email}
                   phone={phone}

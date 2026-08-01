@@ -913,10 +913,12 @@ app.get('/api/payments/config', async (_req, res) => {
 });
 
 app.post('/api/payments/create-intent', async (req, res) => {
-  const { order_id } = req.body || {};
-  const order = db.getOrderById(order_id);
-  if (!order) {
-    return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
+  // The order is NOT created here — it only exists as a staged payload so that
+  // abandoned/failed payments never show up in the dashboards. The order is
+  // persisted (status=paid) once the payment actually succeeds.
+  const { order } = req.body || {};
+  if (!order || typeof order !== 'object' || !order.total_amount || !Array.isArray(order.items)) {
+    return res.status(400).json({ error_ar: 'بيانات الطلب غير مكتملة', error_en: 'Incomplete order data' });
   }
 
   const amountHalala = Math.round(order.total_amount * 100);
@@ -930,10 +932,10 @@ app.post('/api/payments/create-intent', async (req, res) => {
       amount: amountHalala,
       currency: 'sar',
       payment_method_types: ['card'],
-      metadata: { order_id: order.id, order_number: order.order_number },
-      description: `Order ${order.order_number} - Selection Specialty Coffee`
+      description: `Order - Selection Specialty Coffee`
     });
-    console.log(`[Stripe] create-intent OK: order=${order.order_number}, pi=${paymentIntent.id}, status=${paymentIntent.status}, amount=${paymentIntent.amount}, client_secret=${paymentIntent.client_secret ? 'present' : 'MISSING'}`);
+    db.savePendingPayment(paymentIntent.id, order);
+    console.log(`[Stripe] create-intent OK: pi=${paymentIntent.id}, status=${paymentIntent.status}, amount=${paymentIntent.amount}, client_secret=${paymentIntent.client_secret ? 'present' : 'MISSING'}`);
     if (!paymentIntent.client_secret) {
       return res.status(500).json({
         error_ar: 'تعذر إنشاء عملية الدفع',
@@ -948,17 +950,63 @@ app.post('/api/payments/create-intent', async (req, res) => {
   }
 });
 
+app.post('/api/payments/confirm', async (req, res) => {
+  const { payment_intent_id } = req.body || {};
+  if (!payment_intent_id) {
+    return res.status(400).json({ error_ar: 'معرّف الدفع مطلوب', error_en: 'payment_intent_id is required' });
+  }
+
+  // Idempotent: a webhook or a previous confirm may have created the order already.
+  const existing = db.getOrderByPaymentIntent(payment_intent_id);
+  if (existing) return res.json(existing);
+
+  if (!stripe) {
+    return res.status(400).json({ error_ar: 'وضع الدفع الحقيقي غير مفعّل', error_en: 'Live payment is not configured' });
+  }
+
+  let intent: Stripe.PaymentIntent;
+  try {
+    intent = await stripe.paymentIntents.retrieve(payment_intent_id);
+  } catch (err: any) {
+    console.error('[Stripe] confirm retrieve error:', err);
+    return res.status(500).json({ error_ar: 'تعذر التحقق من الدفع', error_en: 'Could not verify payment', detail: err.message });
+  }
+
+  if (intent.status !== 'succeeded') {
+    return res.status(400).json({
+      error_ar: 'لم يكتمل الدفع بعد',
+      error_en: 'Payment has not completed yet',
+      status: intent.status
+    });
+  }
+
+  const orderPayload = db.getPendingPayment(payment_intent_id);
+  if (!orderPayload) {
+    return res.status(400).json({ error_ar: 'بيانات الطلب غير متوفرة', error_en: 'Order data is not available' });
+  }
+
+  const order = db.createOrder({
+    ...orderPayload,
+    status: 'pending',
+    payment_status: 'paid',
+    payment_intent_id
+  });
+  db.removePendingPayment(payment_intent_id);
+  await db.flush();
+  res.json(order);
+});
+
 app.post('/api/payments/sandbox-confirm', async (req, res) => {
   if (stripe) {
     return res.status(400).json({ error_ar: 'وضع الدفع الحقيقي مفعّل', error_en: 'Live mode is active' });
   }
-  const { order_id } = req.body || {};
-  const order = db.updateOrderPaymentStatus(order_id, 'paid');
-  if (!order) {
-    return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
+  const { order } = req.body || {};
+  if (!order || typeof order !== 'object' || !order.total_amount || !Array.isArray(order.items)) {
+    return res.status(400).json({ error_ar: 'بيانات الطلب غير مكتملة', error_en: 'Incomplete order data' });
   }
+  const created = db.createOrder({ ...order, status: 'pending', payment_status: 'paid' });
   await db.flush();
-  res.json({ success: true, order });
+  res.json(created);
 });
 
 app.post('/api/payments/webhook', async (req: any, res) => {
@@ -978,12 +1026,21 @@ app.post('/api/payments/webhook', async (req: any, res) => {
 
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object as Stripe.PaymentIntent;
-    const orderId = (pi.metadata || {}).order_id;
-    if (orderId) db.updateOrderPaymentStatus(orderId, 'paid', pi.id);
+    const piId = pi.id;
+    const existing = db.getOrderByPaymentIntent(piId);
+    if (existing) {
+      db.updateOrderPaymentStatus(existing.id, 'paid', piId);
+    } else {
+      const orderPayload = db.getPendingPayment(piId);
+      if (orderPayload) {
+        db.createOrder({ ...orderPayload, status: 'pending', payment_status: 'paid', payment_intent_id: piId });
+        db.removePendingPayment(piId);
+      }
+    }
   } else if (event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as Stripe.PaymentIntent;
-    const orderId = (pi.metadata || {}).order_id;
-    if (orderId) db.updateOrderPaymentStatus(orderId, 'failed', pi.id);
+    const existing = db.getOrderByPaymentIntent(pi.id);
+    if (existing) db.updateOrderPaymentStatus(existing.id, 'failed', pi.id);
   }
 
   await db.flush();

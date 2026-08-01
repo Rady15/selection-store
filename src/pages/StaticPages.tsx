@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import {
@@ -870,33 +870,50 @@ export const LocationsPage: React.FC<PageProps> = () => {
 };
 
 // 11. TRACK ORDER PAGE
-export const TrackOrderPage: React.FC<PageProps> = () => {
+export const TrackOrderPage: React.FC<PageProps & { orderNumber?: string }> = ({ orderNumber, onNavigate }) => {
   const { language, t } = useLanguage();
-  const [orderCode, setOrderCode] = useState('');
+  const [orderCode, setOrderCode] = useState(orderNumber || '');
   const [searched, setSearched] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleTrack = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchOrder = async (code: string) => {
     setLoading(true);
     setError('');
     setOrder(null);
     try {
-      const res = await fetch(`/api/orders/${orderCode.trim()}`);
+      const res = await fetch(`/api/orders/${encodeURIComponent(code)}`);
       if (res.ok) {
         const data = await res.json();
         setOrder(data);
-        setSearched(true);
       } else {
         setError(t('لم يتم العثور على طلب بهذا الرقم', 'No order found with this number'));
-        setSearched(true);
       }
     } catch (err) {
       setError(t('خطأ في البحث، يرجى المحاولة مرة أخرى', 'Search error, please try again'));
     }
+    setSearched(true);
     setLoading(false);
+  };
+
+  useEffect(() => {
+    if (orderNumber) fetchOrder(orderNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderNumber]);
+
+  const handleTrack = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderCode.trim()) return;
+    fetchOrder(orderCode.trim());
+  };
+
+  const handleNewSearch = () => {
+    setOrder(null);
+    setSearched(false);
+    setError('');
+    setOrderCode('');
+    if (onNavigate) onNavigate('/track-order');
   };
 
   const statusSteps = [
@@ -1002,6 +1019,13 @@ export const TrackOrderPage: React.FC<PageProps> = () => {
                   <span className="text-[#D99B26] font-bold text-xs">{order.tracking_number}</span>
                 </div>
               )}
+
+              <button
+                onClick={handleNewSearch}
+                className="w-full text-center text-[#A69B93] hover:text-[#D99B26] text-xs font-bold py-2 transition cursor-pointer"
+              >
+                {t('تتبع طلب آخر', 'Track another order')}
+              </button>
             </div>
           )}
         </form>
