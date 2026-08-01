@@ -23,7 +23,8 @@ import {
   ShoppingCart,
   BrainCircuit,
   Store,
-  Menu
+  Menu,
+  User
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -110,6 +111,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     { id: 'announcement', label_ar: 'شريط الإعلانات', label_en: 'Announcement Bar', icon: Megaphone },
     { id: 'quiz', label_ar: 'اختبار القهوة', label_en: 'Coffee Quiz', icon: BrainCircuit },
     { id: 'newsletter', label_ar: 'النشرة البريدية', label_en: 'Newsletter', icon: Mail },
+    { id: 'profile', label_ar: 'الملف الشخصي', label_en: 'My Profile', icon: User },
     { id: 'settings', label_ar: 'إعدادات المتجر', label_en: 'Store Settings', icon: Settings }
   ];
 

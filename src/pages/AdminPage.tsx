@@ -16,11 +16,12 @@ import AdminAnnouncementManager from '../components/admin/AdminAnnouncementManag
 import AdminSettingsManager from '../components/admin/AdminSettingsManager';
 import AdminNewsletterManager from '../components/admin/AdminNewsletterManager';
 import AdminQuizManager from '../components/admin/AdminQuizManager';
+import AdminProfileManager from '../components/admin/AdminProfileManager';
 
 const VALID_TABS = [
   'overview', 'products', 'orders', 'customers', 'reviews', 'coupons',
   'homepage', 'contact', 'stock-alerts', 'wholesale', 'categories',
-  'banners', 'announcement', 'settings', 'quiz', 'newsletter'
+  'banners', 'announcement', 'settings', 'quiz', 'newsletter', 'profile'
 ];
 
 const getTabFromPath = (): string => {
@@ -65,6 +66,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
       case 'settings': return <AdminSettingsManager />;
       case 'quiz': return <AdminQuizManager />;
       case 'newsletter': return <AdminNewsletterManager />;
+      case 'profile': return <AdminProfileManager />;
       default: return <AdminOverviewDashboard />;
     }
   };

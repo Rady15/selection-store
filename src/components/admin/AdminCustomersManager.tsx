@@ -24,6 +24,19 @@ const statItems = [
   { key: 'total_loyalty_earned', icon: Award, color: 'text-purple-400', bg: 'bg-purple-500/10' },
 ];
 
+const EMPTY_ADDRESS: Omit<Address, 'id'> = {
+  title: '',
+  full_name: '',
+  phone: '',
+  country: 'SA',
+  city: '',
+  district: '',
+  street: '',
+  building: '',
+  postal_code: '',
+  is_default: false
+};
+
 export const AdminCustomersManager: React.FC = () => {
   const { language, t } = useLanguage();
   const isRtl = language === 'ar';
@@ -44,6 +57,9 @@ export const AdminCustomersManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addressForm, setAddressForm] = useState<Omit<Address, 'id'>>(EMPTY_ADDRESS);
 
   const fetchUsers = async () => {
     try {
@@ -56,16 +72,16 @@ export const AdminCustomersManager: React.FC = () => {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const filteredUsers = users.filter(u => {
-    const term = searchTerm.toLowerCase();
-    return u.name.toLowerCase().includes(term) ||
-      u.email.toLowerCase().includes(term) ||
-      u.phone?.toLowerCase().includes(term) ||
-      u.id.toLowerCase().includes(term);
-  });
-
   const customers = users.filter(u => u.role === 'customer');
   const admins = users.filter(u => u.role === 'admin');
+
+  const filteredUsers = customers.filter(u => {
+    const term = searchTerm.toLowerCase();
+    return (u.name || '').toLowerCase().includes(term) ||
+      (u.email || '').toLowerCase().includes(term) ||
+      (u.phone || '').toLowerCase().includes(term) ||
+      (u.id || '').toLowerCase().includes(term);
+  });
 
   const openUserDetail = async (user: User) => {
     setSelectedUser(user);
@@ -121,6 +137,26 @@ export const AdminCustomersManager: React.FC = () => {
     } catch (err) { console.error(err); }
   };
 
+  const handleToggleBlock = async () => {
+    if (!selectedUser || !detailData) return;
+    const nextBlocked = !selectedUser.blocked;
+    if (nextBlocked && !confirm(t('هل أنت متأكد من حظر هذا المستخدم؟', 'Are you sure you want to block this user?'))) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocked: nextBlocked })
+      });
+      if (!res.ok) { console.error('API error:', res.status); return; }
+      const updated = await res.json();
+      setDetailData({ ...detailData, user: updated });
+      setSelectedUser(updated);
+      fetchUsers();
+    } catch (err) { console.error(err); }
+    setSaving(false);
+  };
+
   const handleLoyaltyAdjust = async () => {
     if (!selectedUser || loyaltyPoints <= 0 || !loyaltyReason) return;
     setSaving(true);
@@ -147,6 +183,74 @@ export const AdminCustomersManager: React.FC = () => {
       fetchUsers();
     } catch (err) { console.error(err); }
     setSaving(false);
+  };
+
+  const saveAddressesToUser = async (updated: Address[]) => {
+    if (!selectedUser) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addresses: updated })
+      });
+      if (!res.ok) { console.error('API error:', res.status); return; }
+      const user = await res.json();
+      if (detailData) {
+        setDetailData({ ...detailData, user, addresses: user.addresses || [] });
+        setSelectedUser(user);
+      }
+      fetchUsers();
+    } catch (err) { console.error(err); }
+    setSaving(false);
+  };
+
+  const openEditAddress = (addr: Address) => {
+    setEditingAddress(addr);
+    setAddressForm({
+      title: addr.title,
+      full_name: addr.full_name,
+      phone: addr.phone,
+      country: addr.country,
+      city: addr.city,
+      district: addr.district,
+      street: addr.street,
+      building: addr.building || '',
+      postal_code: addr.postal_code || '',
+      delivery_notes: addr.delivery_notes || '',
+      is_default: addr.is_default
+    });
+    setAddressFormOpen(true);
+  };
+
+  const handleSaveAddress = () => {
+    if (!detailData) return;
+    let updated: Address[];
+    if (editingAddress) {
+      updated = detailData.addresses.map(a => a.id === editingAddress.id ? { ...addressForm, id: editingAddress.id } as Address : a);
+    } else {
+      const newAddr: Address = { ...addressForm, id: `addr_${Date.now()}` } as Address;
+      updated = [...detailData.addresses, newAddr];
+    }
+    if (addressForm.is_default) {
+      updated = updated.map(a => ({ ...a, is_default: a.id === (editingAddress?.id || updated[updated.length - 1].id) }));
+    }
+    saveAddressesToUser(updated);
+    setAddressFormOpen(false);
+    setEditingAddress(null);
+    setAddressForm(EMPTY_ADDRESS);
+  };
+
+  const handleDeleteAddress = (id: string) => {
+    if (!detailData) return;
+    const updated = detailData.addresses.filter(a => a.id !== id);
+    saveAddressesToUser(updated);
+  };
+
+  const handleSetDefault = (id: string) => {
+    if (!detailData) return;
+    const updated = detailData.addresses.map(a => ({ ...a, is_default: a.id === id }));
+    saveAddressesToUser(updated);
   };
 
   return (
@@ -225,10 +329,10 @@ export const AdminCustomersManager: React.FC = () => {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                         u.role === 'admin' ? 'bg-[#8C532B] text-white' : 'bg-[#2A221E] text-[#D99B26]'
                       }`}>
-                        {u.name.charAt(0)}
+                        {(u.name || u.email || '?').charAt(0)}
                       </div>
                       <div>
-                        <span className="font-bold text-white block">{u.name}</span>
+                        <span className="font-bold text-white block">{u.name || u.email || '-'}</span>
                         <span className="text-[10px] text-[#A69B93]">{u.id}</span>
                       </div>
                     </div>
@@ -243,6 +347,11 @@ export const AdminCustomersManager: React.FC = () => {
                     }`}>
                       {u.role === 'admin' ? 'Admin' : 'Customer'}
                     </span>
+                    {u.blocked && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-400 ml-1">
+                        {t('محظور', 'Blocked')}
+                      </span>
+                    )}
                   </td>
                   <td className="p-4">
                     <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-bold">
@@ -280,10 +389,10 @@ export const AdminCustomersManager: React.FC = () => {
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                   detailData.user.role === 'admin' ? 'bg-[#8C532B] text-white' : 'bg-[#2A221E] text-[#D99B26]'
                 }`}>
-                  {detailData.user.name.charAt(0)}
+                  {(detailData.user.name || detailData.user.email || '?').charAt(0)}
                 </div>
                 <div>
-                  <h2 className="font-extrabold text-lg text-white font-serif">{detailData.user.name}</h2>
+                  <h2 className="font-extrabold text-lg text-white font-serif">{detailData.user.name || detailData.user.email}</h2>
                   <p className="text-[10px] text-[#A69B93]">{detailData.user.email} · {detailData.user.id}</p>
                 </div>
               </div>
@@ -414,7 +523,19 @@ export const AdminCustomersManager: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-2 flex-wrap">
+                      <button
+                        onClick={handleToggleBlock}
+                        disabled={saving}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer disabled:opacity-50 ${
+                          selectedUser.blocked
+                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                            : 'bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20'
+                        }`}
+                      >
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {selectedUser.blocked ? t('إلغاء الحظر', 'Unblock User') : t('حظر المستخدم', 'Block User')}
+                      </button>
                       <button
                         onClick={handleDeleteUser}
                         className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 text-red-400 px-3 py-2 rounded-xl text-[11px] font-bold hover:bg-red-500/20 transition cursor-pointer"
@@ -480,16 +601,123 @@ export const AdminCustomersManager: React.FC = () => {
 
               {/* Addresses Tab */}
               {detailTab === 'addresses' && (
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-[#A69B93]">{t('عناوين هذا المستخدم المستخدمة في الشحن والفوترة', 'Shipping & billing addresses for this user')}</p>
+                    <button
+                      onClick={() => { setEditingAddress(null); setAddressForm(EMPTY_ADDRESS); setAddressFormOpen(true); }}
+                      className="flex items-center gap-1 bg-[#8C532B] hover:bg-[#A86434] text-white px-3 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {t('إضافة عنوان', 'Add Address')}
+                    </button>
+                  </div>
+
+                  {addressFormOpen && (
+                    <div className="bg-[#1C1613] rounded-2xl p-4 border border-[#D99B26]/40 space-y-3">
+                      <h3 className="font-bold text-sm">{editingAddress ? t('تعديل العنوان', 'Edit Address') : t('عنوان جديد', 'New Address')}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-[#A69B93]">{t('عنوان الحفظ', 'Label')}</span>
+                          <input value={addressForm.title} onChange={e => setAddressForm({ ...addressForm, title: e.target.value })}
+                            placeholder={t('المنزل، العمل...', 'Home, Work...')}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('الاسم الكامل', 'Full Name')}</span>
+                          <input value={addressForm.full_name} onChange={e => setAddressForm({ ...addressForm, full_name: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('الجوال', 'Phone')}</span>
+                          <input value={addressForm.phone} onChange={e => setAddressForm({ ...addressForm, phone: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('المدينة', 'City')}</span>
+                          <input value={addressForm.city} onChange={e => setAddressForm({ ...addressForm, city: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('الحي', 'District')}</span>
+                          <input value={addressForm.district} onChange={e => setAddressForm({ ...addressForm, district: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('الشارع / المبنى', 'Street / Building')}</span>
+                          <input value={addressForm.street} onChange={e => setAddressForm({ ...addressForm, street: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('الرقم الإضافي', 'Building No.')}</span>
+                          <input value={addressForm.building} onChange={e => setAddressForm({ ...addressForm, building: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                        <div>
+                          <span className="text-[#A69B93]">{t('الرمز البريدي', 'Postal Code')}</span>
+                          <input value={addressForm.postal_code} onChange={e => setAddressForm({ ...addressForm, postal_code: e.target.value })}
+                            className="w-full bg-[#110E0C] border border-[#2A221E] rounded-lg p-2 text-white mt-1 focus:outline-none focus:border-[#D99B26]" />
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-[#D4C3B5] cursor-pointer">
+                        <input type="checkbox" checked={addressForm.is_default}
+                          onChange={e => setAddressForm({ ...addressForm, is_default: e.target.checked })}
+                          className="accent-[#D99B26]" />
+                        {t('تعيين كعنوان افتراضي', 'Set as default address')}
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveAddress}
+                          disabled={saving}
+                          className="flex items-center gap-1.5 bg-[#8C532B] hover:bg-[#A86434] disabled:opacity-50 text-white px-4 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          {t('حفظ العنوان', 'Save Address')}
+                        </button>
+                        <button
+                          onClick={() => { setAddressFormOpen(false); setEditingAddress(null); setAddressForm(EMPTY_ADDRESS); }}
+                          className="text-[#A69B93] hover:text-white px-3 py-2 rounded-xl text-[11px] font-bold transition cursor-pointer"
+                        >
+                          {t('إلغاء', 'Cancel')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {detailData.addresses.length === 0 ? (
                     <p className="text-center text-[#A69B93] text-xs py-8">{t('لا توجد عناوين', 'No addresses saved')}</p>
                   ) : (
                     detailData.addresses.map(addr => (
                       <div key={addr.id} className="bg-[#1C1613] rounded-2xl p-4 border border-[#2A221E]">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <MapPin className="w-3.5 h-3.5 text-[#D99B26]" />
                           <span className="font-bold text-xs text-white">{addr.title}</span>
                           {addr.is_default && <span className="text-[10px] text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold">{t('افتراضي', 'Default')}</span>}
+                          <div className="ms-auto flex items-center gap-1">
+                            {!addr.is_default && (
+                              <button
+                                onClick={() => handleSetDefault(addr.id)}
+                                title={t('تعيين افتراضي', 'Set default')}
+                                className="p-1.5 rounded-lg text-[#A69B93] hover:text-emerald-400 hover:bg-emerald-500/10 transition cursor-pointer"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openEditAddress(addr)}
+                              title={t('تعديل', 'Edit')}
+                              className="p-1.5 rounded-lg text-[#A69B93] hover:text-[#D99B26] hover:bg-[#D99B26]/10 transition cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAddress(addr.id)}
+                              title={t('حذف', 'Delete')}
+                              className="p-1.5 rounded-lg text-[#A69B93] hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-xs text-[#D4C3B5]">{addr.street}, {addr.district}, {addr.city}</p>
                         <p className="text-[10px] text-[#A69B93]">{addr.full_name} · {addr.phone}</p>

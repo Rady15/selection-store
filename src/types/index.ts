@@ -127,6 +127,7 @@ export interface User {
   addresses: Address[];
   created_at: string;
   password?: string;
+  blocked?: boolean;
 }
 
 export type OrderStatus = 'pending' | 'paid' | 'roasting' | 'shipped' | 'delivered' | 'cancelled';

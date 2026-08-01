@@ -190,6 +190,9 @@ app.post('/api/auth/login', (req, res) => {
   if (user.password && user.password !== password) {
     return res.status(401).json({ error_ar: 'اسم المستخدم أو كلمة المرور غير صحيحة', error_en: 'Invalid credentials' });
   }
+  if (user.blocked) {
+    return res.status(403).json({ error_ar: 'تم حظر حسابك، يرجى التواصل مع الدعم', error_en: 'Your account has been blocked, please contact support' });
+  }
   db.linkOrdersToUser(user.id, user.email);
   res.json({ user, token: signToken(user) });
 });
@@ -198,6 +201,9 @@ app.post('/api/auth/register', (req, res) => {
   const { name, email, phone, password } = req.body;
   const existing = db.getUserByEmail(email);
   if (existing) {
+    if (existing.blocked) {
+      return res.status(403).json({ error_ar: 'تم حظر حسابك، يرجى التواصل مع الدعم', error_en: 'Your account has been blocked, please contact support' });
+    }
     return res.status(400).json({ error_ar: 'البريد الإلكتروني مسجل بالفعل', error_en: 'Email already registered' });
   }
 
@@ -280,6 +286,10 @@ app.post('/api/auth/google', async (req, res) => {
     const googleName = payload.name || googleEmail.split('@')[0] || 'Google User';
 
     let user = db.getUserByEmail(googleEmail);
+
+    if (user && user.blocked) {
+      return res.status(403).json({ error_ar: 'تم حظر حسابك، يرجى التواصل مع الدعم', error_en: 'Your account has been blocked, please contact support' });
+    }
 
     if (!user) {
       user = db.createUser({
@@ -381,6 +391,16 @@ app.get('/api/orders/:orderNumber', (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
   try {
+    const userId = req.body.user_id;
+    if (userId) {
+      const user = db.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error_ar: 'المستخدم غير موجود', error_en: 'User not found' });
+      }
+      if (user.blocked) {
+        return res.status(403).json({ error_ar: 'تم حظر حسابك، لا يمكنك إتمام الطلب. يرجى التواصل مع الدعم', error_en: 'Your account has been blocked, you cannot place orders' });
+      }
+    }
     const order = db.createOrder(req.body);
     await db.flush();
     res.json(order);
@@ -526,8 +546,10 @@ app.get('/api/users/:id', (req, res) => {
 });
 
 app.put('/api/users/:id', (req, res) => {
-  const user = db.updateUser({ ...req.body, id: req.params.id });
-  res.json(user);
+  const existing = db.getUserById(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'User not found' });
+  const user = db.updateUser({ ...existing, ...req.body, id: req.params.id });
+  res.json({ user });
 });
 
 app.get('/api/admin/users/:id/loyalty-transactions', (req, res) => {

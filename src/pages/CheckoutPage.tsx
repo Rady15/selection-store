@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { saudiCities, shippingProviders } from '../utils/coffee';
-import { PaymentMethod } from '../types';
+import { PaymentMethod, Address } from '../types';
 import { StripePaymentSection } from '../components/checkout/StripePaymentSection';
 import {
   CreditCard,
@@ -71,6 +71,34 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const shippingCost = totalAmount >= 199 ? 0 : selectedShipping.priceSAR;
   const codSurcharge = paymentMethod === 'cod' ? 15 : 0;
   const finalPayableTotal = totalAmount + shippingCost + codSurcharge;
+
+  const hydratedUserId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user || hydratedUserId.current === user.id) return;
+    hydratedUserId.current = user.id;
+    fetch(`/api/users/${user.id}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(fresh => {
+        if (!fresh) return;
+        setCustomerName(fresh.name || '');
+        setPhone(fresh.phone || '');
+        setEmail(fresh.email || '');
+        const addr: Address | undefined =
+          (fresh.addresses || []).find((a: Address) => a.is_default) || (fresh.addresses || [])[0];
+        if (addr) {
+          setFormData({
+            city: addr.city || '',
+            district: addr.district || '',
+            street: addr.street || '',
+            building: addr.building || '',
+            postal_code: addr.postal_code || '',
+            delivery_notes: addr.delivery_notes || ''
+          });
+        }
+      })
+      .catch(() => {});
+  }, [user]);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
