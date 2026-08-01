@@ -1013,8 +1013,12 @@ app.use((err: any, req: any, res: any, next: any) => {
 });
 
 // Vite Middleware for Dev / Static serving for Prod
+// The Vite dev middleware runs ONLY when explicitly in development. Any other
+// value (production, or unset — which is what most hosts default to) serves the
+// built app from dist/. Otherwise deployments without NODE_ENV=production would
+// boot the dev server on production hosts and block their host names.
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'development') {
     // vite is ESM-only and must stay out of the Vercel serverless bundle,
     // so it is loaded lazily and only when running the local dev server.
     const { createServer: createViteServer } = await import('vite');
