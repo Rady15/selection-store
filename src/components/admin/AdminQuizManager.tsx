@@ -3,8 +3,35 @@ import { useLanguage } from '../../context/LanguageContext';
 import { QuizQuestion, QuizConfig } from '../../types';
 import { Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle, Check, Eye, Image as ImageIcon } from 'lucide-react';
 
+// Fields an admin can score a product against in quiz rules.
+// Each entry carries a user-friendly bilingual label so admins understand
+// exactly which product attribute the rule matches.
+const QUIZ_FIELDS: { value: string; label_ar: string; label_en: string }[] = [
+  { value: 'name_ar', label_ar: 'الاسم (عربي)', label_en: 'Name (AR)' },
+  { value: 'name_en', label_ar: 'الاسم (إنجليزي)', label_en: 'Name (EN)' },
+  { value: 'subtitle_ar', label_ar: 'العنوان الفرعي (عربي)', label_en: 'Subtitle (AR)' },
+  { value: 'subtitle_en', label_ar: 'العنوان الفرعي (إنجليزي)', label_en: 'Subtitle (EN)' },
+  { value: 'description_ar', label_ar: 'الوصف (عربي)', label_en: 'Description (AR)' },
+  { value: 'description_en', label_ar: 'الوصف (إنجليزي)', label_en: 'Description (EN)' },
+  { value: 'tasting_notes_ar', label_ar: 'نكهات التذوق (عربي)', label_en: 'Tasting Notes (AR)' },
+  { value: 'tasting_notes_en', label_ar: 'نكهات التذوق (إنجليزي)', label_en: 'Tasting Notes (EN)' },
+  { value: 'process_ar', label_ar: 'طريقة المعالجة (عربي)', label_en: 'Process (AR)' },
+  { value: 'process_en', label_ar: 'طريقة المعالجة (إنجليزي)', label_en: 'Process (EN)' },
+  { value: 'roast_level_ar', label_ar: 'درجة التحميص (عربي)', label_en: 'Roast Level (AR)' },
+  { value: 'roast_level_en', label_ar: 'درجة التحميص (إنجليزي)', label_en: 'Roast Level (EN)' },
+  { value: 'origin_country_ar', label_ar: 'بلد المنشأ (عربي)', label_en: 'Origin Country (AR)' },
+  { value: 'origin_country_en', label_ar: 'بلد المنشأ (إنجليزي)', label_en: 'Origin Country (EN)' },
+  { value: 'region_ar', label_ar: 'المنطقة المزروعة (عربي)', label_en: 'Growing Region (AR)' },
+  { value: 'region_en', label_ar: 'المنطقة المزروعة (إنجليزي)', label_en: 'Growing Region (EN)' },
+  { value: 'variety', label_ar: 'نوع البن (Variety)', label_en: 'Coffee Variety' },
+  { value: 'altitude', label_ar: 'الارتفاع (Altitude)', label_en: 'Altitude' },
+  { value: 'category_slug', label_ar: 'الفئة (Category)', label_en: 'Category' },
+  { value: 'subcategory_id', label_ar: 'الفئة الفرعية', label_en: 'Subcategory' },
+  { value: 'sku', label_ar: 'رمز المنتج (SKU)', label_en: 'Product SKU' }
+];
+
 export const AdminQuizManager: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [config, setConfig] = useState<QuizConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -393,14 +420,11 @@ export const AdminQuizManager: React.FC = () => {
                         onChange={e => updateRule(qi, oi, ri, 'field', e.target.value)}
                       >
                         <option value="">{t('اختر حقل', 'Select field')}</option>
-                        <option value="name_ar">name_ar</option>
-                        <option value="name_en">name_en</option>
-                        <option value="process_ar">process_ar</option>
-                        <option value="process_en">process_en</option>
-                        <option value="roast_level_ar">roast_level_ar</option>
-                        <option value="roast_level_en">roast_level_en</option>
-                        <option value="tasting_notes_ar">tasting_notes_ar</option>
-                        <option value="tasting_notes_en">tasting_notes_en</option>
+                        {QUIZ_FIELDS.map(f => (
+                          <option key={f.value} value={f.value}>
+                            {language === 'ar' ? f.label_ar : f.label_en} — {language === 'ar' ? f.label_en : f.label_ar}
+                          </option>
+                        ))}
                       </select>
                       <select
                         className="bg-[#1C1613] border border-[#2A221E] rounded-lg px-2 py-1 text-[10px] text-white"
