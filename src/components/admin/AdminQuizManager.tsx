@@ -422,7 +422,7 @@ export const AdminQuizManager: React.FC = () => {
                         <option value="">{t('اختر حقل', 'Select field')}</option>
                         {QUIZ_FIELDS.map(f => (
                           <option key={f.value} value={f.value}>
-                            {language === 'ar' ? f.label_ar : f.label_en} — {language === 'ar' ? f.label_en : f.label_ar}
+                            {language === 'ar' ? f.label_ar : f.label_en}
                           </option>
                         ))}
                       </select>
