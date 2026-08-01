@@ -2,16 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { Order, OrderStatus } from '../../types';
-import { ShoppingBag, Eye, X } from 'lucide-react';
+import { ShoppingBag, Eye, X, Trash2, Printer, Loader2 } from 'lucide-react';
 
 const statusOptions: { value: OrderStatus; label_ar: string; label_en: string }[] = [
   { value: 'pending', label_ar: 'معلق', label_en: 'Pending' },
-  { value: 'paid', label_ar: 'مدفوع', label_en: 'Paid' },
+  { value: 'paid', label_ar: 'تم الدفع', label_en: 'Paid' },
   { value: 'roasting', label_ar: 'قيد التحميص', label_en: 'Roasting' },
   { value: 'shipped', label_ar: 'تم الشحن', label_en: 'Shipped' },
   { value: 'delivered', label_ar: 'تم التوصيل', label_en: 'Delivered' },
   { value: 'cancelled', label_ar: 'ملغي', label_en: 'Cancelled' }
 ];
+
+const PAYMENT_LABELS: Record<string, [string, string]> = {
+  paid: ['تم الدفع', 'Paid'],
+  pending: ['قيد الدفع', 'Pending'],
+  failed: ['فشل الدفع', 'Failed']
+};
 
 export const AdminOrdersManager: React.FC = () => {
   const { language, t } = useLanguage();
@@ -20,8 +26,15 @@ export const AdminOrdersManager: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => { loadOrders(); }, []);
+
+  // A paid order is always shown as "تم الدفع" (Paid) even if the fulfillment
+  // status was never bumped from pending (e.g. paid via Tabby/Tamara).
+  const getEffectiveStatus = (o: Order): OrderStatus =>
+    o.payment_status === 'paid' && o.status === 'pending' ? 'paid' : o.status;
 
   const loadOrders = () => {
     fetch('/api/orders')
@@ -34,15 +47,159 @@ export const AdminOrdersManager: React.FC = () => {
   };
 
   const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
-    await fetch(`/api/orders/${orderId}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    });
-    loadOrders();
+    setUpdatingId(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+      if (updated) {
+        setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, ...updated } : o)));
+      }
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+      alert(t('فشل تحديث حالة الطلب', 'Failed to update order status'));
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
-  const filteredOrders = statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter);
+  const handleDeleteOrder = async (ord: Order) => {
+    if (!window.confirm(t('هل أنت متأكد من حذف هذا الطلب؟', 'Are you sure you want to delete this order?'))) return;
+    setDeletingId(ord.id);
+    try {
+      const res = await fetch(`/api/admin/orders/${ord.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setOrders(prev => prev.filter(o => o.id !== ord.id));
+      if (selectedOrder?.id === ord.id) setSelectedOrder(null);
+    } catch (err) {
+      console.error('Failed to delete order:', err);
+      alert(t('فشل حذف الطلب', 'Failed to delete order'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const statusLabel = (s: string) => {
+    const opt = statusOptions.find(o => o.value === s);
+    if (!opt) return s;
+    return language === 'ar' ? opt.label_ar : opt.label_en;
+  };
+
+  const printReceipt = (ord: Order) => {
+    const win = window.open('', '_blank', 'width=420,height=700');
+    if (!win) {
+      alert(t('الرجاء السماح بالنوافذ المنبثقة لطباعة الإيصال', 'Please allow pop-ups to print the receipt'));
+      return;
+    }
+    const dir = language === 'ar' ? 'rtl' : 'ltr';
+    const formatItemTotal = (v: number) => formatPrice(v);
+    const rows = ord.items.map((item, idx) => `
+      <tr>
+        <td style="padding:6px 4px;border-bottom:1px solid #e2ddd6;vertical-align:top">
+          <strong>${language === 'ar' ? item.product_name_ar : item.product_name_en}</strong>
+          <div style="font-size:11px;color:#666">${item.weight} • ${item.grind} × ${item.quantity}</div>
+        </td>
+        <td style="padding:6px 4px;border-bottom:1px solid #e2ddd6;text-align:${dir === 'rtl' ? 'left' : 'right'};white-space:nowrap">${formatItemTotal(item.total_price)}</td>
+      </tr>
+    `).join('');
+
+    const priceRow = (label: string, value: string, style = '') => `
+      <div style="display:flex;justify-content:space-between;padding:2px 0;font-size:13px;${style}">
+        <span>${label}</span><span>${value}</span>
+      </div>
+    `;
+
+    const totalRow = `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid #2b2b2b;font-size:16px;font-weight:700">
+        <span>${t('الإجمالي', 'Total')}</span><span>${formatPrice(ord.total_amount)}</span>
+      </div>
+    `;
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="${language === 'ar' ? 'ar' : 'en'}" dir="${dir}">
+      <head>
+        <meta charset="utf-8" />
+        <title>${t('إيصال الطلب', 'Order Receipt')} - ${ord.order_number}</title>
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #1c1613; margin: 0; }
+          .receipt { max-width: 420px; margin: 0 auto; padding: 24px; }
+          h1 { font-size: 20px; margin: 0 0 2px; }
+          .store { font-size: 11px; color: #8a7a6b; letter-spacing: 0.4px; }
+          .meta { border-top: 1px dashed #c8bfb4; border-bottom: 1px dashed #c8bfb4; margin: 14px 0; padding: 10px 0; font-size: 13px; }
+          .meta div { display: flex; justify-content: space-between; padding: 2px 0; }
+          .meta span { color: #8a7a6b; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+          .paid { display:inline-block; margin-top:6px; padding:4px 12px; border-radius:20px; background:#e8f5e9; color:#1b5e20; font-size:12px; font-weight:700; }
+          .pending { background:#fff3e0; color:#b26a00; }
+          .failed { background:#fdecea; color:#b71c1c; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <h1>Selection Specialty Coffee</h1>
+          <div class="store">${t('قائمة مختصة - تحميص يومي طازج', 'Specialty coffee roasters - fresh daily roast')}</div>
+
+          <div class="meta">
+            <div><span>${t('رقم الطلب', 'Order No.')}</span><strong>${ord.order_number}</strong></div>
+            <div><span>${t('التاريخ', 'Date')}</span><strong>${new Date(ord.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-GB')} ${new Date(ord.created_at).toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}</strong></div>
+            <div><span>${t('العميل', 'Customer')}</span><strong>${ord.customer_name}</strong></div>
+            <div><span>${t('الهاتف', 'Phone')}</span><strong dir="ltr">${ord.phone}</strong></div>
+            <div><span>${t('الدفع', 'Payment')}</span><strong>${language === 'ar' ? (ord.payment_method || '').toUpperCase() : (ord.payment_method || '').toUpperCase()}</strong></div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:${dir === 'rtl' ? 'right' : 'left'};font-size:12px;border-bottom:2px solid #2b2b2b;padding:4px">${t('المنتج', 'Item')}</th>
+                <th style="text-align:${dir === 'rtl' ? 'left' : 'right'};font-size:12px;border-bottom:2px solid #2b2b2b;padding:4px">${t('المبلغ', 'Price')}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+
+          ${priceRow(t('المجموع الفرعي', 'Subtotal'), formatPrice(ord.subtotal))}
+          ${ord.discount_amount > 0 ? priceRow(t('الخصم', 'Discount'), '-' + formatPrice(ord.discount_amount), 'color:#1b5e20') : ''}
+          ${ord.loyalty_discount && ord.loyalty_discount > 0 ? priceRow(t('خصم الولاء', 'Loyalty'), '-' + formatPrice(ord.loyalty_discount), 'color:#b26a00') : ''}
+          ${priceRow(t('الشحن', 'Shipping'), ord.shipping_cost > 0 ? formatPrice(ord.shipping_cost) : t('مجاني', 'Free'))}
+          ${ord.cod_surcharge && ord.cod_surcharge > 0 ? priceRow(t('رسوم COD', 'COD Surcharge'), '+' + formatPrice(ord.cod_surcharge), 'color:#b26a00') : ''}
+          ${priceRow(t('ضريبة القيمة المضافة 15%', 'VAT 15%'), formatPrice(ord.tax_amount))}
+          ${totalRow}
+
+          <div style="font-size:12px;margin-top:6px">
+            <span style="color:#8a7a6b">${t('حالة الدفع', 'Payment Status')}:</span>
+            <span class="${ord.payment_status === 'paid' ? 'paid' : ord.payment_status === 'pending' ? 'pending' : 'failed'}">
+              ${language === 'ar' ? (PAYMENT_LABELS[ord.payment_status]?.[0] || ord.payment_status) : (PAYMENT_LABELS[ord.payment_status]?.[1] || ord.payment_status)}
+            </span>
+          </div>
+          <div style="font-size:12px;margin-top:4px">
+            <span style="color:#8a7a6b">${t('حالة الطلب', 'Order Status')}:</span>
+            <strong>${statusLabel(getEffectiveStatus(ord))}</strong>
+          </div>
+          ${ord.tracking_number ? `<div style="font-size:12px;margin-top:4px"><span style="color:#8a7a6b">${t('رقم التتبع', 'Tracking No.')}:</span> <strong dir="ltr">${ord.tracking_number}</strong></div>` : ''}
+          ${ord.shipping_address ? `<div style="font-size:12px;margin-top:4px"><span style="color:#8a7a6b">${t('العنوان', 'Address')}:</span> ${ord.shipping_address.city} - ${ord.shipping_address.district} - ${ord.shipping_address.street}</div>` : ''}
+
+          <div style="margin-top:18px;text-align:center;font-size:11px;color:#8a7a6b;border-top:1px dashed #c8bfb4;padding-top:10px">
+            ${t('شكراً لتسوقك من Selection', 'Thank you for shopping with Selection')}
+          </div>
+        </div>
+        <script>
+          window.addEventListener('load', function () {
+            setTimeout(function () { window.print(); }, 250);
+          });
+        </script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+  };
+
+  const filteredOrders = statusFilter === 'all' ? orders : orders.filter(o => getEffectiveStatus(o) === statusFilter);
   const filtered = filteredOrders.filter(o =>
     o.order_number.toLowerCase().includes(search.toLowerCase()) ||
     o.customer_name.includes(search) ||
@@ -131,9 +288,10 @@ export const AdminOrdersManager: React.FC = () => {
                   </td>
                   <td className="p-4">
                     <select
-                      value={ord.status}
+                      value={getEffectiveStatus(ord)}
+                      disabled={updatingId === ord.id}
                       onChange={e => handleUpdateStatus(ord.id, e.target.value as OrderStatus)}
-                      className={`bg-[#110E0C] text-white border border-[#2A221E] rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#D99B26] cursor-pointer ${getStatusColor(ord.status)}`}
+                      className={`bg-[#110E0C] text-white border border-[#2A221E] rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#D99B26] cursor-pointer disabled:opacity-60 ${getStatusColor(getEffectiveStatus(ord))}`}
                     >
                       {statusOptions.map(s => (
                         <option key={s.value} value={s.value}>{language === 'ar' ? s.label_ar : s.label_en}</option>
@@ -141,12 +299,23 @@ export const AdminOrdersManager: React.FC = () => {
                     </select>
                   </td>
                   <td className="p-4 text-end">
-                    <button
-                      onClick={() => setSelectedOrder(ord)}
-                      className="p-1.5 rounded-lg bg-[#2A221E] text-white hover:bg-[#8C532B] transition cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => setSelectedOrder(ord)}
+                        className="p-1.5 rounded-lg bg-[#2A221E] text-white hover:bg-[#8C532B] transition cursor-pointer"
+                        title={t('تفاصيل الطلب', 'Order details')}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteOrder(ord)}
+                        disabled={deletingId === ord.id}
+                        className="p-1.5 rounded-lg bg-[#2A221E] text-red-400 hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50"
+                        title={t('حذف الطلب', 'Delete order')}
+                      >
+                        {deletingId === ord.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -168,23 +337,41 @@ export const AdminOrdersManager: React.FC = () => {
               <h3 className="font-extrabold text-lg text-white">{selectedOrder.order_number}</h3>
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                  selectedOrder.status === 'delivered' ? 'bg-emerald-500/20 text-emerald-400' :
-                  selectedOrder.status === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
-                  selectedOrder.status === 'roasting' ? 'bg-amber-500/20 text-amber-400' :
-                  selectedOrder.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                  selectedOrder.status === 'paid' ? 'bg-purple-500/20 text-purple-400' :
+                  getEffectiveStatus(selectedOrder) === 'delivered' ? 'bg-emerald-500/20 text-emerald-400' :
+                  getEffectiveStatus(selectedOrder) === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
+                  getEffectiveStatus(selectedOrder) === 'roasting' ? 'bg-amber-500/20 text-amber-400' :
+                  getEffectiveStatus(selectedOrder) === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                  getEffectiveStatus(selectedOrder) === 'paid' ? 'bg-purple-500/20 text-purple-400' :
                   'bg-[#8C532B]/20 text-[#D99B26]'
                 }`}>
-                  {language === 'ar' ? statusOptions.find(s => s.value === selectedOrder.status)?.label_ar : selectedOrder.status}
+                  {statusLabel(getEffectiveStatus(selectedOrder))}
                 </span>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
                   selectedOrder.payment_status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
                   selectedOrder.payment_status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
                   'bg-red-500/20 text-red-400'
                 }`}>
-                  {selectedOrder.payment_status}
+                  {language === 'ar' ? (PAYMENT_LABELS[selectedOrder.payment_status]?.[0] || selectedOrder.payment_status) : (PAYMENT_LABELS[selectedOrder.payment_status]?.[1] || selectedOrder.payment_status)}
                 </span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 mb-4">
+              <button
+                onClick={() => printReceipt(selectedOrder)}
+                className="flex items-center gap-1.5 bg-[#D99B26] text-[#110E0C] px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-[#e8aa3d] transition cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                {t('طباعة الإيصال', 'Print Receipt')}
+              </button>
+              <button
+                onClick={() => handleDeleteOrder(selectedOrder)}
+                disabled={deletingId === selectedOrder.id}
+                className="flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50"
+              >
+                {deletingId === selectedOrder.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                {t('حذف الطلب', 'Delete Order')}
+              </button>
             </div>
 
             <div className="space-y-3 text-xs">

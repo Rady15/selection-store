@@ -957,7 +957,7 @@ export const TrackOrderPage: React.FC<PageProps> = () => {
                           'bg-[#8C532B]/20 text-[#D99B26]'
                   }`}>
                   {language === 'ar' ? {
-                    pending: 'معلق', paid: 'مدفوع', roasting: 'قيد التحميص',
+                    pending: 'معلق', paid: 'تم الدفع', roasting: 'قيد التحميص',
                     shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي'
                   }[order.status] || order.status : order.status}
                 </span>

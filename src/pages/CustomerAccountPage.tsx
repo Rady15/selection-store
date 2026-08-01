@@ -374,8 +374,19 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400">
-                        {ord.status}
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        ord.status === 'delivered' ? 'bg-emerald-500/20 text-emerald-400' :
+                        ord.status === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
+                        ord.status === 'roasting' ? 'bg-amber-500/20 text-amber-400' :
+                        ord.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                        ord.status === 'paid' || (ord.payment_status === 'paid' && ord.status === 'pending') ? 'bg-purple-500/20 text-purple-400' :
+                        'bg-[#8C532B]/20 text-[#D99B26]'
+                      }`}>
+                        {language === 'ar' ? ({
+                          pending: 'معلق', paid: 'تم الدفع', roasting: 'قيد التحميص',
+                          shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي'
+                        } as Record<string, string>)[ord.payment_status === 'paid' && ord.status === 'pending' ? 'paid' : ord.status] || ord.status
+                        : (ord.payment_status === 'paid' && ord.status === 'pending' ? 'Paid' : ord.status)}
                       </span>
                       {ord.tracking_number && (
                         <a

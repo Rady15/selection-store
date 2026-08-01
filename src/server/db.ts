@@ -1460,18 +1460,28 @@ class Database {
 
   createOrder(orderData: Omit<Order, 'id' | 'order_number' | 'created_at' | 'status_history'>) {
     const orderNumber = `FK-${Math.floor(10000 + Math.random() * 90000)}`;
+    const timestamp = new Date().toISOString();
+    // Orders paid upfront (e.g. Tabby/Tamara) are immediately marked "تم الدفع".
+    const paidUpfront = orderData.payment_status === 'paid' && orderData.status === 'pending';
     const newOrder: Order = {
       ...orderData,
+      status: paidUpfront ? 'paid' : orderData.status,
       id: `ord-${Date.now()}`,
       order_number: orderNumber,
-      created_at: new Date().toISOString(),
+      created_at: timestamp,
       status_history: [
         {
           status: orderData.status,
-          timestamp: new Date().toISOString(),
+          timestamp,
           note_ar: 'تم إنشاء الطلب بنجاح',
           note_en: 'Order successfully created'
-        }
+        },
+        ...(paidUpfront ? [{
+          status: 'paid' as Order['status'],
+          timestamp,
+          note_ar: 'تم دفع قيمة الطلب',
+          note_en: 'Order payment received'
+        }] : [])
       ]
     };
 
@@ -1559,10 +1569,25 @@ class Database {
     const order = this.state.orders.find(o => o.id === orderId);
     if (order) {
       order.payment_status = paymentStatus;
+      // Keep the fulfillment status in sync: a paid order is shown as "تم الدفع".
+      if (paymentStatus === 'paid' && order.status === 'pending') {
+        order.status = 'paid';
+        order.status_history.push({
+          status: 'paid',
+          timestamp: new Date().toISOString(),
+          note_ar: 'تم دفع قيمة الطلب',
+          note_en: 'Order payment received'
+        });
+      }
       if (paymentIntentId) order.payment_intent_id = paymentIntentId;
       this.saveState();
     }
     return order;
+  }
+
+  deleteOrder(orderId: string) {
+    this.state.orders = this.state.orders.filter(o => o.id !== orderId && o.order_number !== orderId);
+    this.saveState();
   }
 
   // Coupons

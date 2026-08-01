@@ -350,10 +350,26 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-app.put('/api/orders/:id/status', (req, res) => {
-  const { status, note_ar, note_en } = req.body;
-  const order = db.updateOrderStatus(req.params.id, status, note_ar, note_en);
-  res.json(order);
+app.put('/api/orders/:id/status', async (req, res) => {
+  const { status, note_ar, note_en } = req.body || {};
+  if (!status) {
+    return res.status(400).json({ error_ar: 'يرجى تحديد الحالة الجديدة', error_en: 'New status is required' });
+  }
+  try {
+    // Force a re-read of the durable snapshot before mutating so a warm
+    // instance never writes stale (older) state over the latest snapshot —
+    // otherwise recent orders created on other instances get erased.
+    await db.refreshIfStale(0);
+    const order = db.updateOrderStatus(req.params.id, status, note_ar, note_en);
+    if (!order) {
+      return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
+    }
+    await db.flush();
+    res.json(order);
+  } catch (err: any) {
+    console.error('PUT /api/orders/:id/status', err);
+    res.status(500).json({ error_ar: 'فشل تحديث حالة الطلب', error_en: 'Failed to update order status' });
+  }
 });
 
 // Admin Orders (alias)
@@ -366,10 +382,51 @@ app.get('/api/admin/orders', (req, res) => {
   res.json(orders);
 });
 
-app.put('/api/admin/orders/:id', (req, res) => {
-  const { status, note_ar, note_en } = req.body;
-  const order = db.updateOrderStatus(req.params.id, status, note_ar, note_en);
-  res.json(order);
+app.put('/api/admin/orders/:id', async (req, res) => {
+  const { status, note_ar, note_en } = req.body || {};
+  try {
+    await db.refreshIfStale(0);
+    const order = db.updateOrderStatus(req.params.id, status, note_ar, note_en);
+    if (!order) {
+      return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
+    }
+    await db.flush();
+    res.json(order);
+  } catch (err: any) {
+    console.error('PUT /api/admin/orders/:id', err);
+    res.status(500).json({ error_ar: 'فشل تحديث الطلب', error_en: 'Failed to update order' });
+  }
+});
+
+// Delete an order (admin + alias)
+app.delete('/api/admin/orders/:id', async (req, res) => {
+  try {
+    const order = db.getOrderById(req.params.id) || db.getOrderByNumber(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
+    }
+    db.deleteOrder(req.params.id);
+    await db.flush();
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('DELETE /api/admin/orders/:id', err);
+    res.status(500).json({ error_ar: 'فشل حذف الطلب', error_en: 'Failed to delete order' });
+  }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  try {
+    const order = db.getOrderById(req.params.id) || db.getOrderByNumber(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error_ar: 'الطلب غير موجود', error_en: 'Order not found' });
+    }
+    db.deleteOrder(req.params.id);
+    await db.flush();
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('DELETE /api/orders/:id', err);
+    res.status(500).json({ error_ar: 'فشل حذف الطلب', error_en: 'Failed to delete order' });
+  }
 });
 
 // Users (Admin)

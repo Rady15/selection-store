@@ -441,7 +441,7 @@ export const AdminCustomersManager: React.FC = () => {
                         </div>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[order.status] || ''}`}>
                           {t(
-                            { pending: 'قيد الانتظار', paid: 'مدفوع', roasting: 'تحميص', shipped: 'شحن', delivered: 'تم التوصيل', cancelled: 'ملغي' }[order.status] || order.status,
+                            { pending: 'قيد الانتظار', paid: 'تم الدفع', roasting: 'تحميص', shipped: 'شحن', delivered: 'تم التوصيل', cancelled: 'ملغي' }[order.status] || order.status,
                             order.status.charAt(0).toUpperCase() + order.status.slice(1)
                           )}
                         </span>
