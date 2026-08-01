@@ -72,15 +72,16 @@ export const AdminCustomersManager: React.FC = () => {
 
   useEffect(() => { fetchUsers(); }, []);
 
-  const customers = users.filter(u => u.role === 'customer');
-  const admins = users.filter(u => u.role === 'admin');
+  const customers = users.filter(u => u && u.role === 'customer');
+  const admins = users.filter(u => u && u.role === 'admin');
 
   const filteredUsers = customers.filter(u => {
+    if (!u) return false;
     const term = searchTerm.toLowerCase();
-    return (u.name || '').toLowerCase().includes(term) ||
-      (u.email || '').toLowerCase().includes(term) ||
-      (u.phone || '').toLowerCase().includes(term) ||
-      (u.id || '').toLowerCase().includes(term);
+    return String(u.name || '').toLowerCase().includes(term) ||
+      String(u.email || '').toLowerCase().includes(term) ||
+      String(u.phone || '').toLowerCase().includes(term) ||
+      String(u.id || '').toLowerCase().includes(term);
   });
 
   const openUserDetail = async (user: User) => {
@@ -293,7 +294,7 @@ export const AdminCustomersManager: React.FC = () => {
             <Award className="w-5 h-5 text-amber-400" />
           </div>
           <span className="font-extrabold text-2xl text-white block mt-2">
-            {customers.reduce((sum, u) => sum + u.loyalty_points, 0).toLocaleString()}
+            {customers.reduce((sum, u) => sum + (u?.loyalty_points || 0), 0).toLocaleString()}
           </span>
         </div>
         <div className="p-5 rounded-3xl bg-[#1C1613] border border-[#2A221E]">
