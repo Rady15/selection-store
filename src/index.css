@@ -87,3 +87,61 @@ html, body, #root {
   animation: waveFloat 3s ease-in-out infinite;
 }
 
+/* Floating Coffee Advisor button */
+@keyframes fabFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+.animate-fab-float {
+  animation: fabFloat 4s ease-in-out infinite;
+}
+
+@keyframes fabGlow {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.2);
+  }
+}
+
+.animate-fab-glow {
+  animation: fabGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes fabLabelIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fab-label {
+  opacity: 0;
+  animation: fabLabelIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1s forwards;
+}
+
+@keyframes fabWiggle {
+  0%, 100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+
+.animate-fab-wiggle {
+  animation: fabWiggle 2.2s ease-in-out infinite;
+}
+

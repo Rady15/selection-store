@@ -131,18 +131,6 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
               {t('الرئيسية', 'Home')}
             </button>
 
-            <button
-              onClick={() => {
-                onNavigate('/coffee-finder');
-                onClose();
-              }}
-              className="w-full text-start py-2.5 px-3 rounded-lg hover:bg-[#1C1613] text-sm font-medium transition cursor-pointer text-[#D99B26] flex items-center justify-between"
-            >
-              <span className="flex items-center gap-2">
-                {t('مستشار القهوة الذكي', 'Interactive Coffee Quiz')}
-              </span>
-            </button>
-
             {categories.map(cat => (
               <button
                 key={cat.id}

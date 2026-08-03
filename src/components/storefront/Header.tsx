@@ -149,14 +149,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
             </div>
 
             <button
-              onClick={() => onNavigate('/coffee-finder')}
-              className={`flex items-center gap-1.5 hover:text-[#D99B26] transition py-1 border-b-2 cursor-pointer ${currentPath === '/coffee-finder' ? 'text-[#D99B26] border-[#D99B26]' : 'border-transparent text-[#E6DFD5]'
-                }`}
-            >
-              <span>{t('مستشار القهوة', 'Coffee Quiz')}</span>
-            </button>
-
-            <button
               onClick={() => onNavigate('/about')}
               className={`hover:text-[#D99B26] transition py-1 border-b-2 cursor-pointer ${currentPath === '/about' ? 'text-[#D99B26] border-[#D99B26]' : 'border-transparent text-[#E6DFD5]'
                 }`}
