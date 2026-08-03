@@ -26,7 +26,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose, o
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const trendingKeywords = ['شلشلي', 'سانتواريو', 'الخولاني', 'V60', 'طاحونة', 'أظرف مقطرة', 'صندوق التذوق'];
+  const trendingKeywords = ['شلشلي', 'سانتواريو', 'الخولاني', 'V60', 'طاحونة', 'أظرف مقطرة', 'بوكس التذوق'];
 
   useEffect(() => {
     if (isOpen) {

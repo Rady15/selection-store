@@ -22,7 +22,7 @@ const ORDER_STATUS_LABELS: Record<string, [string, string]> = {
   shipped: ['تم الشحن', 'Shipped'],
   delivered: ['تم التوصيل', 'Delivered'],
   cancelled: ['ملغي', 'Cancelled'],
-  paid: ['تم الدفع', 'Paid']
+  paid: ['تم الإنشاء', 'Created']
 };
 
 const PAYMENT_STATUS_LABELS: Record<string, [string, string]> = {

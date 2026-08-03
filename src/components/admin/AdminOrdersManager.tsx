@@ -8,7 +8,7 @@ import { ShoppingBag, Eye, X, Trash2, Printer, Loader2 } from 'lucide-react';
 
 const statusOptions: { value: OrderStatus; label_ar: string; label_en: string }[] = [
   { value: 'pending', label_ar: 'معلق', label_en: 'Pending' },
-  { value: 'paid', label_ar: 'تم الدفع', label_en: 'Paid' },
+  { value: 'paid', label_ar: 'تم الإنشاء', label_en: 'Created' },
   { value: 'roasting', label_ar: 'قيد التحميص', label_en: 'Roasting' },
   { value: 'shipped', label_ar: 'تم الشحن', label_en: 'Shipped' },
   { value: 'delivered', label_ar: 'تم التوصيل', label_en: 'Delivered' },
@@ -31,7 +31,7 @@ export const AdminOrdersManager: React.FC = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // A paid order is always shown as "تم الدفع" (Paid) even if the fulfillment
+  // A paid order is always shown as "تم الإنشاء" (Created) even if the fulfillment
   // status was never bumped from pending (e.g. paid via Tabby/Tamara).
   const getEffectiveStatus = (o: Order): OrderStatus =>
     o.payment_status === 'paid' && o.status === 'pending' ? 'paid' : o.status;
@@ -336,7 +336,7 @@ export const AdminOrdersManager: React.FC = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-[#D4C3B5]">
-                  <span>{t('الضريبة 15%', 'VAT 15%')}</span>
+                  <span>{t('ضريبة القيمة المضافة 15%', 'VAT 15%')}</span>
                   <span>{formatPrice(selectedOrder.tax_amount)}</span>
                 </div>
                 <div className="flex justify-between text-[#D99B26] font-extrabold text-sm border-t border-[#2A221E] pt-2">

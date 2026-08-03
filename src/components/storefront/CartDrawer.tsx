@@ -119,25 +119,36 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
         </div>
 
         {/* Free Shipping Goal Bar */}
-        <div className="p-4 bg-[#1C1613]/50 border-b border-[#2A221E]">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#D4C3B5] mb-2">
-            <Truck className="w-4 h-4 text-[#D99B26] animate-pulse" />
+        <div className={`p-4 border-b border-[#2A221E] ${isFreeShippingEligible ? 'bg-emerald-500/10' : 'bg-[#8C532B]/20'}`}>
+          <div className={`flex items-center gap-2.5 rounded-2xl border px-3.5 py-3 mb-3 ${isFreeShippingEligible ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-[#D99B26]/40 bg-[#1C1613]/80'}`}>
+            <Truck className={`w-6 h-6 shrink-0 ${isFreeShippingEligible ? 'text-emerald-400' : 'text-[#D99B26]'} animate-pulse`} />
             {isFreeShippingEligible ? (
-              <span className="text-emerald-400 font-bold">
+              <span className="text-sm font-extrabold text-emerald-400 leading-snug">
                 {t('مبروك! حصلت على شحن مجاني للطلب 🎉', 'Congratulations! You unlocked FREE shipping! 🎉')}
               </span>
             ) : (
-              <span>
+              <span className="text-sm font-extrabold text-white leading-snug">
                 {t('أضف', 'Add')}{' '}
-                <strong className="text-[#D99B26] font-bold">{formatPrice(amountNeededForFreeShipping)}</strong>{' '}
-                {t('أخرى للحصول على شحن مجاني!', 'more for FREE shipping!')}
+                <strong className="text-base text-[#D99B26]">{formatPrice(amountNeededForFreeShipping)}</strong>{' '}
+                {t('أخرى فقط للحصول على شحن مجاني 🚚', 'more to get FREE shipping 🚚')}
               </span>
             )}
           </div>
 
-          <div className="w-full bg-[#2A221E] h-2 rounded-full overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-[#A69B93] uppercase tracking-wider">
+              {t('الهدف', 'Goal')}
+            </span>
+            <span className={`text-[10px] font-extrabold ${isFreeShippingEligible ? 'text-emerald-400' : 'text-[#D99B26]'}`}>
+              {isFreeShippingEligible
+                ? t('شحن مجاني ✓', 'FREE ✓')
+                : `${formatPrice(freeShippingThreshold)} ${t('لتوصيل مجاني', 'for free delivery')}`}
+            </span>
+          </div>
+
+          <div className="w-full bg-[#2A221E] h-2.5 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-[#8C532B] to-[#D99B26] h-full transition-all duration-500 rounded-full"
+              className={`h-full transition-all duration-500 rounded-full ${isFreeShippingEligible ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-[#8C532B] to-[#D99B26]'}`}
               style={{ width: `${freeShippingProgressPercent}%` }}
             />
           </div>
@@ -309,13 +320,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>{t('الضريبة (15% VAT)', 'Tax (15% VAT)')}</span>
+                <span>{t('ضريبة القيمة المضافة (15% VAT)', 'Tax (15% VAT)')}</span>
                 <span>{formatPrice(taxAmount)}</span>
               </div>
             </div>
 
             <div className="flex justify-between items-center pt-2 border-t border-[#2A221E]">
-              <span className="text-xs text-[#A69B93]">{t('الإجمالي شامل الضريبة', 'Total incl. tax')}</span>
+              <span className="text-xs text-[#A69B93]">{t('الإجمالي شامل ضريبة القيمة المضافة', 'Total incl. tax')}</span>
               <span className="text-lg font-extrabold text-[#D99B26]">{formatPrice(totalAmount)}</span>
             </div>
 

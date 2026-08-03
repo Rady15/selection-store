@@ -120,7 +120,7 @@ export const AdminSettingsManager: React.FC = () => {
                 className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white" />
             </div>
             <div>
-              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('نسبة الضريبة %', 'VAT Rate %')}</label>
+              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('نسبة ضريبة القيمة المضافة %', 'VAT Rate %')}</label>
               <input type="number" value={settings.vat_rate} onChange={e => updateField('vat_rate', Number(e.target.value))}
                 className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white" />
             </div>

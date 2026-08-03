@@ -179,7 +179,7 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
     </div>
 
     <div class="panel meta">
-      <div><span class="k">${t('التاريخ:', 'Date:')}</span> <span class="v">${new Date(order.created_at).toLocaleString(language === 'ar' ? 'ar-SA' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+      <div><span class="k">${t('التاريخ:', 'Date:')}</span> <span class="v">${new Date(order.created_at).toLocaleString(language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
       <div><span class="k">${t('حالة الدفع:', 'Payment:')}</span> <span class="pay-badge ${order.payment_status === 'paid' ? 'pay-paid' : order.payment_status === 'pending' ? 'pay-pending' : 'pay-failed'}">${language === 'ar' ? (PAYMENT_STATUS_LABELS[order.payment_status]?.[0] || order.payment_status) : (PAYMENT_STATUS_LABELS[order.payment_status]?.[1] || order.payment_status)}</span></div>
       <div><span class="k">${t('العميل:', 'Customer:')}</span> <span class="v">${esc(order.customer_name)}</span></div>
       <div><span class="k">${t('طريقة الدفع:', 'Payment Method:')}</span> <span class="v">${language === 'ar' ? (PAYMENT_LABELS[order.payment_method]?.[0] || order.payment_method) : (PAYMENT_LABELS[order.payment_method]?.[1] || order.payment_method)}</span></div>
@@ -219,12 +219,12 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
       ${order.cod_surcharge && order.cod_surcharge > 0 ? totalsRow(t('رسوم الدفع عند الاستلام', 'COD Surcharge'), '+' + formatPrice(order.cod_surcharge), 'color:#b26a00') : ''}
 
       <div class="vat-box">
-        ${totalsRow(t('الوعاء الضريبي (قبل الضريبة)', 'VAT Base (before tax)'), formatPrice(vatBase))}
+        ${totalsRow(t('الوعاء الضريبي (قبل ضريبة القيمة المضافة)', 'VAT Base (before VAT)'), formatPrice(vatBase))}
         ${totalsRow(t(`ضريبة القيمة المضافة (${Math.round(vatRate * 100)}%)`, `VAT (${Math.round(vatRate * 100)}%)`), formatPrice(order.tax_amount), 'font-weight:700')}
       </div>
 
       <div class="row grand">
-        <span class="k">${t('الإجمالي شامل الضريبة', 'Total incl. VAT')}</span>
+        <span class="k">${t('الإجمالي شامل ضريبة القيمة المضافة', 'Total incl. VAT')}</span>
         <span dir="ltr">${formatPrice(order.total_amount)}</span>
       </div>
     </div>
@@ -234,7 +234,7 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
         ${t('فاتورة ضريبية صادرة وفقاً لأحكام ضريبة القيمة المضافة في المملكة العربية السعودية. شكراً لتسوقك من سيليكشن.', 'Tax invoice issued in accordance with the Saudi VAT regulations. Thank you for shopping with Selection.')}
       </div>
       <div>
-        ${t('تاريخ الإصدار:', 'Issued:')} ${new Date().toLocaleString(language === 'ar' ? 'ar-SA' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+        ${t('تاريخ الإصدار:', 'Issued:')} ${new Date().toLocaleString(language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })}
       </div>
     </div>
 

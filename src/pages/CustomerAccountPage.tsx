@@ -389,10 +389,10 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
                         'bg-[#8C532B]/20 text-[#D99B26]'
                       }`}>
                         {language === 'ar' ? ({
-                          pending: 'معلق', paid: 'تم الدفع', roasting: 'قيد التحميص',
+                          pending: 'معلق', paid: 'تم الإنشاء', roasting: 'قيد التحميص',
                           shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي'
                         } as Record<string, string>)[ord.payment_status === 'paid' && ord.status === 'pending' ? 'paid' : ord.status] || ord.status
-                        : (ord.payment_status === 'paid' && ord.status === 'pending' ? 'Paid' : ord.status)}
+                        : (ord.payment_status === 'paid' && ord.status === 'pending' ? 'Created' : ord.status)}
                       </span>
                       {ord.tracking_number && (
                         <a

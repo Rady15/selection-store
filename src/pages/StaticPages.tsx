@@ -349,7 +349,7 @@ export const TermsPage: React.FC<PageProps> = () => {
           </div>
 
           <div>
-            <h4 className="font-bold text-white text-sm mb-2">2. {t('الأسعار والضريبة', 'Pricing & Tax')}</h4>
+            <h4 className="font-bold text-white text-sm mb-2">2. {t('الأسعار وضريبة القيمة المضافة', 'Pricing & Tax')}</h4>
             <p>{t('جميع الأسعار معروضة بالريال السعودي وتشمل ضريبة القيمة المضافة 15% وفقاً لأنظمة هيئة الزكاة والدخل بالمملكة العربية السعودية. يحتفظ المتجر بحق تعديل الأسعار في أي وقت دون إشعار مسبق.', 'All prices are displayed in Saudi Riyal (SAR) and include 15% VAT per ZATCA regulations. The store reserves the right to change prices without prior notice.')}</p>
           </div>
 
@@ -754,7 +754,7 @@ export const SubscriptionsPage: React.FC<PageProps> = ({ onNavigate }) => {
               <span className="text-[10px] bg-[#8C532B]/30 text-[#D99B26] font-bold px-2.5 py-1 rounded-full uppercase">
                 {t('للمبتدئين', 'Starter Plan')}
               </span>
-              <h3 className="font-bold text-xl text-white font-serif">{t('صندوق المستكشف (2 كيس)', 'The Explorer (2 Bags)')}</h3>
+              <h3 className="font-bold text-xl text-white font-serif">{t('بوكس المستكشف (2 كيس)', 'The Explorer (2 Bags)')}</h3>
               <p className="text-xs text-[#A69B93]">{t('كيسان قهوة مختصة (250غ لكل كيس) بتنوع محاصيل فاكهية ومغسولة.', '2 bags of single origin specialty crops monthly.')}</p>
               <div className="pt-2 text-2xl font-extrabold text-[#D99B26]">
                 119 <span className="text-xs text-[#A69B93] font-normal">﷼ / شهرياً</span>
@@ -774,7 +774,7 @@ export const SubscriptionsPage: React.FC<PageProps> = ({ onNavigate }) => {
               <span className="text-[10px] bg-[#D99B26]/20 text-[#D99B26] font-bold px-2.5 py-1 rounded-full uppercase">
                 {t('لعشاق القهوة', 'Coffee Connoisseur')}
               </span>
-              <h3 className="font-bold text-xl text-white font-serif">{t('صندوق المحمص الخاص (3 أكياس)', 'Roaster Choice (3 Bags)')}</h3>
+              <h3 className="font-bold text-xl text-white font-serif">{t('بوكس المحمص الخاص (3 أكياس)', 'Roaster Choice (3 Bags)')}</h3>
               <p className="text-xs text-[#A69B93]">{t('3 أكياس قهوة مختصة مختارة بعناية من أحدث المحاصيل العالمية الحصرية.', '3 bags of rare high-score micro-lots.')}</p>
               <div className="pt-2 text-3xl font-extrabold text-[#D99B26]">
                 169 <span className="text-xs text-[#A69B93] font-normal">﷼ / شهرياً</span>
@@ -791,7 +791,7 @@ export const SubscriptionsPage: React.FC<PageProps> = ({ onNavigate }) => {
               <span className="text-[10px] bg-[#8C532B]/30 text-[#D99B26] font-bold px-2.5 py-1 rounded-full uppercase">
                 {t('للمكاتب وعشاق التقطير', 'Office & Drip Lovers')}
               </span>
-              <h3 className="font-bold text-xl text-white font-serif">{t('صندوق الأظرف المقطرة (30 ظرف)', 'Drip Bags Box (30 Bags)')}</h3>
+              <h3 className="font-bold text-xl text-white font-serif">{t('بوكس الأظرف المقطرة (30 ظرف)', 'Drip Bags Box (30 Bags)')}</h3>
               <p className="text-xs text-[#A69B93]">{t('30 ظرف قهوة مقطرة جاهزة سريع التحضير في العمل والأسفار.', '30 ready drip bags perfect for work & travel.')}</p>
               <div className="pt-2 text-2xl font-extrabold text-[#D99B26]">
                 139 <span className="text-xs text-[#A69B93] font-normal">﷼ / شهرياً</span>
@@ -974,7 +974,7 @@ export const TrackOrderPage: React.FC<PageProps & { orderNumber?: string }> = ({
                           'bg-[#8C532B]/20 text-[#D99B26]'
                   }`}>
                   {language === 'ar' ? {
-                    pending: 'معلق', paid: 'تم الدفع', roasting: 'قيد التحميص',
+                    pending: 'معلق', paid: 'تم الإنشاء', roasting: 'قيد التحميص',
                     shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي'
                   }[order.status] || order.status : order.status}
                 </span>

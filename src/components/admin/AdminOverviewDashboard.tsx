@@ -198,7 +198,7 @@ export const AdminOverviewDashboard: React.FC = () => {
                     'bg-[#8C532B]/20 text-[#D99B26]'
                   }`}>
                     {language === 'ar' ? {
-                      pending: 'معلق', paid: 'تم الدفع', roasting: 'قيد التحميص',
+                      pending: 'معلق', paid: 'تم الإنشاء', roasting: 'قيد التحميص',
                       shipped: 'تم الشحن', delivered: 'تم التوصيل', cancelled: 'ملغي'
                     }[order.status] || order.status : order.status}
                   </span>

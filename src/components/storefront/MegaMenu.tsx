@@ -83,7 +83,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose, onNavigate 
             {t('عرض خاص', 'SPECIAL OFFER')}
           </span>
           <h5 className="font-bold text-base text-white">
-            {t('صندوق اكتشاف المحاصيل المختصة', 'Discovery Crops Tasting Box')}
+            {t('بوكس اكتشاف المحاصيل المختصة', 'Discovery Crops Tasting Box')}
           </h5>
           <p className="text-xs text-[#D4C3B5] mt-1 mb-3">
             {t('4 محاصيل عالمية محمصة طازجة بخصم 15%', '4 World-class crops with 15% discount')}
@@ -95,7 +95,7 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose, onNavigate 
             }}
             className="w-full bg-[#8C532B] hover:bg-[#A86434] text-white py-2 rounded-lg text-xs font-bold transition shadow cursor-pointer"
           >
-            {t('اكتشف الصندوق الآن', 'Shop Box Now')}
+            {t('اكتشف البوكس الآن', 'Shop Box Now')}
           </button>
         </div>
       </div>

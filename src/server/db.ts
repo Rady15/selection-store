@@ -386,11 +386,11 @@ const initialProducts: Product[] = [
   {
     id: 'prod-6',
     slug: 'specialty-crop-discovery-box',
-    name_ar: 'صندوق اكتشاف القهوة المختصة (4 محاصيل x 125ج)',
+    name_ar: 'بوكس اكتشاف القهوة المختصة (4 محاصيل x 125ج)',
     name_en: 'Specialty Crop Discovery Box (4 Crops x 125g)',
-    subtitle_ar: 'تذوق 4 محاصيل عالمية مختلفة في صندوق هدية أنيق',
+    subtitle_ar: 'تذوق 4 محاصيل عالمية مختلفة في بوكس هدية أنيق',
     subtitle_en: 'Taste 4 world-class specialty crops in an elegant gift box',
-    description_ar: 'الصندوق المثالي لعشاق القهوة والتذوق. يحتوي على 4 عبوات بحجم 125 جرام من أفضل المحاصيل المختصة المختارة من إثيوبيا، كولومبيا، السلفادور، وكوستاريكا مع بطاقات التذوق والتوجيهات.',
+    description_ar: 'البوكس المثالي لعشاق القهوة والتذوق. يحتوي على 4 عبوات بحجم 125 جرام من أفضل المحاصيل المختصة المختارة من إثيوبيا، كولومبيا، السلفادور، وكوستاريكا مع بطاقات التذوق والتوجيهات.',
     description_en: 'The ultimate tasting experience or gift for coffee connoisseurs. Features four 125g bags of our finest single-origin specialty coffees from Ethiopia, Colombia, El Salvador, and Costa Rica complete with tasting notes cards.',
     category_id: 'cat-2',
     price: 129,
@@ -408,7 +408,7 @@ const initialProducts: Product[] = [
     tasting_notes_en: ['Red Berries', 'Jasmine', 'Caramel', 'Chocolate'],
     origin_country_ar: 'محاصيل متنوعة',
     origin_country_en: 'Multi-Origin',
-    region_ar: 'صندوق التذوق الخاص',
+    region_ar: 'بوكس التذوق الخاص',
     region_en: 'Discovery Box',
     altitude: '1600 - 2200 م',
     process_ar: 'مجففة ومغسولة ولاهوائية',
@@ -431,7 +431,7 @@ const initialProducts: Product[] = [
   {
     id: 'prod-7',
     slug: 'v60-drip-bags-box-10pcs',
-    name_ar: 'صندوق أظرف القهوة المقطرة V60 (10 أظرف)',
+    name_ar: 'بوكس أظرف القهوة المقطرة V60 (10 أظرف)',
     name_en: 'V60 Drip Coffee Bags Box (10 Bags)',
     subtitle_ar: 'قهوة مختصة 100% في أظرف سهلة التحضير أثناء السفر والعمل',
     subtitle_en: '100% specialty coffee drip bags for quick brewing anywhere',
@@ -734,7 +734,7 @@ const initialOrders: Order[] = [
       },
       {
         product_id: 'prod-7',
-        product_name_ar: 'صندوق أظرف القهوة المقطرة V60',
+        product_name_ar: 'بوكس أظرف القهوة المقطرة V60',
         product_name_en: 'V60 Drip Coffee Bags Box',
         image: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=400&q=80',
         weight: '10bags',
@@ -823,11 +823,11 @@ const initialHomepageSections: HomepageSection[] = [
           id: 'slide-2',
           badge_ar: 'عروض الحزمة الذهبية',
           badge_en: 'GOLDEN BUNDLE OFFERS',
-          title_ar: 'صندوق التذوق الاستكشافي - 4 محاصيل عالمية',
+          title_ar: 'بوكس التذوق الاستكشافي - 4 محاصيل عالمية',
           title_en: 'Discovery Tasting Box - 4 World-Class Specialty Crops',
           subtitle_ar: 'رحلة تذوق استثنائية تجمع محاصيل إثيوبيا، كولومبيا، السلفادور، وكوستاريكا في علبة أنيقة',
           subtitle_en: 'An extraordinary tasting journey featuring top microlots from across the world',
-          cta_text_ar: 'اكتشف الصندوق',
+          cta_text_ar: 'اكتشف البوكس',
           cta_text_en: 'Explore Discovery Box',
           cta_link: '/products/specialty-crop-discovery-box',
           image_desktop: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=1800&q=80',
@@ -956,7 +956,7 @@ const initialHomepageSections: HomepageSection[] = [
     config: {
       items: [
         { name_ar: 'سعود الحربي', name_en: 'Saud Al-Harbi', role_ar: 'باريستا ومحب قهوة', role_en: 'Barista & Coffee Enthusiast', rating: 5, comment_ar: 'أفضل قهوة مختصة جربتها في السعودية. محصول إثيوبيا شلشلي كان خرافي مع تحضير V60.', comment_en: 'Best specialty coffee I\'ve tried in Saudi Arabia. The Ethiopia Chelchele was incredible with V60.' },
-        { name_ar: 'نورة القحطاني', name_en: 'Noura Al-Qahtani', role_ar: 'باريستا منزلي', role_en: 'Home Barista', rating: 5, comment_ar: 'صندوق الاكتشاف كان هدية مثالية. كل محصول كان أجمل من الثاني. التغليف فخم جداً.', comment_en: 'The Discovery Box was a perfect gift. Every crop was better than the last. Premium packaging too.' },
+        { name_ar: 'نورة القحطاني', name_en: 'Noura Al-Qahtani', role_ar: 'باريستا منزلي', role_en: 'Home Barista', rating: 5, comment_ar: 'بوكس الاكتشاف كان هدية مثالية. كل محصول كان أجمل من الثاني. التغليف فخم جداً.', comment_en: 'The Discovery Box was a perfect gift. Every crop was better than the last. Premium packaging too.' },
         { name_ar: 'فهد العتيبي', name_en: 'Fahd Al-Otaibi', role_ar: 'محمم قهوة', role_en: 'Coffee Roaster', rating: 5, comment_ar: 'جودة التحميص ممتازة. استخدمت الإسبرسو بلند他们在拿铁 وطلع كريمي وغني.', comment_en: "Excellent roast quality. I use their espresso blend for lattes and it's rich and creamy." }
       ]
     }

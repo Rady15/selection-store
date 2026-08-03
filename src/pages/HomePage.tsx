@@ -72,7 +72,7 @@ const DEFAULT_SECTIONS: HomepageSection[] = [
     id: 'sec-testimonials', type: 'testimonials', is_enabled: true, sort_order: 9, config: {
       items: [
         { name_ar: 'سعود الحربي', name_en: 'Saud Al-Harbi', role_ar: 'باريستا ومحب قهوة', role_en: 'Barista & Coffee Enthusiast', rating: 5, comment_ar: 'أفضل قهوة مختصة جربتها في السعودية. محصول إثيوبيا شلشلي كان خرافي مع تحضير V60.', comment_en: "Best specialty coffee I've tried in Saudi Arabia. The Ethiopia Chelchele was incredible with V60." },
-        { name_ar: 'نورة القحطاني', name_en: 'Noura Al-Qahtani', role_ar: 'باريستا منزلي', role_en: 'Home Barista', rating: 5, comment_ar: 'صندوق الاكتشاف كان هدية مثالية. كل محصول كان أجمل من الثاني. التغليف فخم جداً.', comment_en: 'The Discovery Box was a perfect gift. Every crop was better than the last. Premium packaging too.' },
+        { name_ar: 'نورة القحطاني', name_en: 'Noura Al-Qahtani', role_ar: 'باريستا منزلي', role_en: 'Home Barista', rating: 5, comment_ar: 'بوكس الاكتشاف كان هدية مثالية. كل محصول كان أجمل من الثاني. التغليف فخم جداً.', comment_en: 'The Discovery Box was a perfect gift. Every crop was better than the last. Premium packaging too.' },
         { name_ar: 'فهد العتيبي', name_en: 'Fahd Al-Otaibi', role_ar: 'محمم قهوة', role_en: 'Coffee Roaster', rating: 5, comment_ar: 'جودة التحميص ممتازة. استخدمت الإسبرسو بلند他们在拿铁 وطلع كريمي وغني.', comment_en: "Excellent roast quality. I use their espresso blend for lattes and it's rich and creamy." }
       ]
     }
