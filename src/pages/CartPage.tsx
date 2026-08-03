@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
 import { grindLabels } from '../utils/coffee';
 import {
   ShoppingBag,
@@ -25,6 +26,7 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
+  const { openAuth } = useUI();
   const {
     items,
     updateQuantity,
@@ -310,7 +312,15 @@ export const CartPage: React.FC<CartPageProps> = ({ onNavigate }) => {
 
                 {/* Checkout CTA */}
                 <button
-                  onClick={() => onNavigate('/checkout')}
+                  onClick={() => {
+                    if (!user) {
+                      openAuth({
+                        message: t('سجّل الدخول لإتمام الطلب ومتابعة الشراء', 'Login to proceed to checkout and complete your order')
+                      });
+                      return;
+                    }
+                    onNavigate('/checkout');
+                  }}
                   className="w-full bg-[#8C532B] hover:bg-[#A86434] text-white py-4 rounded-2xl text-xs sm:text-sm font-extrabold transition shadow-2xl shadow-[#8C532B]/40 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <span>{t('الانتهاء وإتمام الشراء', 'Proceed to Checkout')}</span>

@@ -22,7 +22,7 @@
 
 ## 3. Customer & Admin Commerce Engine
 - **Customer Auth & Dashboard**: Order tracking timeline, digital tax invoices, address manager with map coordinates, loyalty rewards ledger, back-in-stock alerts wishlist.
-- **Checkout Engine**: Guest & Registered checkout, Saudi region/city selector, shipping rates (SMSA, Aramex, Local Express), payments (Mada, Apple Pay, Visa, Tabby, Tamara, COD), VAT 15% itemization, coupons, loyalty points redemption.
+- **Checkout Engine**: Registered checkout (login required), Saudi region/city selector, shipping rates (SMSA, Aramex, Local Express), payments (Mada, Apple Pay, Visa/Mastercard, COD), VAT 15% itemization, coupons, loyalty points redemption.
 - **Admin Management Panel (`/admin`)**:
   - Live Sales Dashboard & KPIs.
   - Product & Variant Builder with multi-language fields.

@@ -30,8 +30,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('fursan_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('fursan_cart');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      // Sanitize legacy/stale entries: any item whose unit price or quantity
+      // is not a valid positive number would otherwise render as NaN.
+      return parsed.filter((it: any) => {
+        const unit = Number(it?.unit_price);
+        const qty = Number(it?.quantity);
+        return Number.isFinite(unit) && Number.isFinite(qty) && unit > 0 && qty > 0;
+      });
+    } catch {
+      return [];
+    }
   });
 
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
@@ -47,8 +60,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: Product, selectedWeight: string, selectedGrind: GrindType, quantity = 1) => {
     const weightOpt = product.weight_options?.find(w => w.value === selectedWeight) || product.weight_options?.[0];
-    const basePrice = product.sale_price ?? product.price;
-    const unitPrice = basePrice + (weightOpt ? weightOpt.priceModifier : 0);
+    const basePrice = Number(product.sale_price ?? product.price) || 0;
+    const modifier = Number(weightOpt?.priceModifier) || 0;
+    const unitPrice = basePrice + modifier;
 
     const itemId = `${product.id}_${selectedWeight}_${selectedGrind}`;
 

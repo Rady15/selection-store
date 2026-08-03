@@ -5,6 +5,7 @@ import { CurrencyProvider, useCurrency } from './context/CurrencyContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { WishlistProvider, useWishlist } from './context/WishlistContext';
+import { UIProvider, useUI } from './context/UIContext';
 
 // Components
 import Header from './components/storefront/Header';
@@ -42,10 +43,10 @@ import AdminPage from './pages/AdminPage';
 
 function MainApp() {
   const { language } = useLanguage();
+  const { authOpen, authMessage, openAuth, closeAuth, fireAuthSuccess } = useUI();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [searchOpen, setSearchOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   // Sync browser history with internal state
   useEffect(() => {
@@ -191,7 +192,7 @@ function MainApp() {
           onNavigate={navigate}
           onOpenSearch={() => setSearchOpen(true)}
           onOpenCart={() => setCartOpen(true)}
-          onOpenAuth={() => setAuthModalOpen(true)}
+          onOpenAuth={() => openAuth()}
         />
       )}
 
@@ -224,8 +225,10 @@ function MainApp() {
       />
 
       <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        isOpen={authOpen}
+        message={authMessage}
+        onClose={closeAuth}
+        onSuccess={fireAuthSuccess}
         onNavigate={navigate}
       />
 
@@ -257,7 +260,9 @@ export default function App() {
           <AuthProvider>
             <CartProvider>
               <WishlistProvider>
-                <MainApp />
+                <UIProvider>
+                  <MainApp />
+                </UIProvider>
               </WishlistProvider>
             </CartProvider>
           </AuthProvider>

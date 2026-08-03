@@ -32,7 +32,7 @@ export const QuestionsSection: React.FC<QuestionsSectionProps> = ({ productId })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product_id: productId,
-          customer_name: customerName.trim() || 'عميل سيليكشن',
+          customer_name: customerName.trim() || 'عميل سليكشن',
           question: questionText.trim()
         })
       });
@@ -93,7 +93,7 @@ export const QuestionsSection: React.FC<QuestionsSectionProps> = ({ productId })
       <div className="space-y-3">
         {questions.length === 0 ? (
           <p className="text-xs text-[#A69B93] text-center py-6">
-            {t('لا توجد أسئلة سابقة. كن أول من يسأل الخبراء المحمصين في سيليكشن!', 'No questions yet. Feel free to ask our head roaster!')}
+            {t('لا توجد أسئلة سابقة. كن أول من يسأل الخبراء المحمصين في سليكشن!', 'No questions yet. Feel free to ask our head roaster!')}
           </p>
         ) : (
           questions.map(q => (
@@ -105,7 +105,7 @@ export const QuestionsSection: React.FC<QuestionsSectionProps> = ({ productId })
 
               {q.answer_ar ? (
                 <div className="p-3 bg-[#110E0C] border-s-2 border-emerald-500 rounded-xl text-xs space-y-1">
-                  <span className="font-bold text-emerald-400">{t('إجابة محامص سيليكشن الرسمية:', 'Official Selection Answer:')}</span>
+                  <span className="font-bold text-emerald-400">{t('إجابة محامص سليكشن الرسمية:', 'Official Selection Answer:')}</span>
                   <p className="text-[#D4C3B5]">{language === 'ar' ? q.answer_ar : q.answer_en}</p>
                 </div>
               ) : (

@@ -3,6 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
 import { saudiCities, shippingProviders } from '../utils/coffee';
 import { PaymentMethod, Address } from '../types';
 import { StripePaymentSection } from '../components/checkout/StripePaymentSection';
@@ -28,6 +29,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
+  const { openAuth } = useUI();
   const {
     items,
     subtotal,
@@ -307,6 +309,42 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
     }
   };
 
+  // Login is required before a customer can place any order.
+  if (!user) {
+    return (
+      <div className="bg-[#110E0C] text-[#F8F5F0] min-h-screen py-16 px-4">
+        <div className="max-w-md mx-auto text-center space-y-6">
+          <div className="w-16 h-16 rounded-3xl bg-[#8C532B]/20 text-[#D99B26] flex items-center justify-center mx-auto">
+            <User className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-extrabold font-serif">
+              {t('سجّل الدخول لإتمام طلبك', 'Login to complete your order')}
+            </h1>
+            <p className="text-xs text-[#A69B93] leading-relaxed">
+              {t('يُشترط تسجيل الدخول (أو إنشاء حساب) قبل إتمام الطلب، حتى تتمكن من متابعة حالة طلبك، وتتبع الشحنة، وكسب نقاط الولاء مع كل عملية شراء.', 'A login (or a new account) is required before placing an order so you can track your order, follow your shipment, and earn loyalty points on every purchase.')}
+            </p>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={() => openAuth()}
+              className="w-full bg-[#8C532B] hover:bg-[#A86434] text-white py-3.5 rounded-2xl text-sm font-extrabold transition shadow-2xl shadow-[#8C532B]/40 cursor-pointer flex items-center justify-center gap-2"
+            >
+              <User className="w-4 h-4" />
+              {t('تسجيل الدخول / إنشاء حساب', 'Login / Create Account')}
+            </button>
+            <button
+              onClick={() => onNavigate('/cart')}
+              className="w-full text-[#A69B93] hover:text-white py-2 rounded-2xl text-xs font-bold transition cursor-pointer"
+            >
+              {t('العودة إلى السلة', 'Back to Cart')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#110E0C] text-[#F8F5F0] min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -502,12 +540,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { id: 'mada', label_ar: 'بطاقة مدى MADA', label_en: 'Mada Debit Card', badge: 'مدى', img: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Mada_Logo.svg' },
-                  { id: 'apple_pay', label_ar: 'Apple Pay (عبر Stripe)', label_en: 'Apple Pay (via Stripe)', badge: ' Pay', img: 'https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg' },
-                  { id: 'tabby', label_ar: 'تابي (تقسيط 4 دفعات)', label_en: 'Tabby 4 Installments', badge: 'tabby', img: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/tabby.svg' },
-                  { id: 'tamara', label_ar: 'تمارا (تقسيط 4 دفعات)', label_en: 'Tamara 4 Installments', badge: 'tamara', img: 'https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png' },
-                  { id: 'visa', label_ar: 'فيزا / ماستركارد (عبر Stripe)', label_en: 'Visa / Mastercard (via Stripe)', badge: 'VISA', img: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Visa_Inc._logo_%282021%E2%80%93present%29.svg' },
-                  { id: 'cod', label_ar: 'الدفع عند الاستلام (+15 ﷼)', label_en: 'Cash on Delivery', badge: 'COD', img: '' }
+                  { id: 'mada', label_ar: 'بطاقة مدى MADA', label_en: 'Mada Debit Card', badge: 'MADA', imgs: ['https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/mada.svg'] },
+                  { id: 'apple_pay', label_ar: 'Apple Pay (عبر Stripe)', label_en: 'Apple Pay (via Stripe)', badge: 'Apple Pay', imgs: ['https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/apple_pay.svg'] },
+                  { id: 'visa', label_ar: 'فيزا / ماستركارد (عبر Stripe)', label_en: 'Visa / Mastercard (via Stripe)', badge: 'VISA', imgs: [
+                    'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/visa.svg',
+                    'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/master.svg'
+                  ] },
+                  { id: 'cod', label_ar: 'الدفع عند الاستلام (+15 ﷼)', label_en: 'Cash on Delivery', badge: 'COD', imgs: [] }
                 ].map(p => {
                   const selected = paymentMethod === p.id;
                   return (
@@ -522,24 +561,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
                       <span className="font-bold text-xs text-white">
                         {language === 'ar' ? p.label_ar : p.label_en}
                       </span>
-                      {p.img ? (
-                        <img
-                          src={p.img}
-                          alt={p.badge}
-                          className="h-5 w-auto"
-                          onError={e => {
-                            const t = e.currentTarget;
-                            const s = document.createElement('span');
-                            s.className = 'text-[10px] font-extrabold bg-[#2A221E] px-2 py-0.5 rounded text-[#D99B26]';
-                            s.textContent = p.badge;
-                            t.parentNode?.replaceChild(s, t);
-                          }}
-                        />
-                      ) : (
-                        <span className="text-[10px] font-extrabold bg-[#2A221E] px-2 py-0.5 rounded text-[#D99B26]">
-                          {p.badge}
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1.5">
+                        {p.imgs.length > 0 ? p.imgs.map(src => (
+                          <img
+                            key={src}
+                            src={src}
+                            alt={p.badge}
+                            className="h-5 w-auto"
+                            onError={e => {
+                              const t = e.currentTarget;
+                              const s = document.createElement('span');
+                              s.className = 'text-[10px] font-extrabold bg-[#2A221E] px-2 py-0.5 rounded text-[#D99B26]';
+                              s.textContent = p.badge;
+                              t.parentNode?.replaceChild(s, t);
+                            }}
+                          />
+                        )) : (
+                          <span className="text-[10px] font-extrabold bg-[#2A221E] px-2 py-0.5 rounded text-[#D99B26]">
+                            {p.badge}
+                          </span>
+                        )}
+                      </span>
                     </div>
                   );
                 })}

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
 
 interface WishlistContextType {
   wishlistIds: string[];
@@ -10,14 +11,38 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const storageKey = `fursan_wishlist_${user?.id || 'guest'}`;
+
   const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('fursan_wishlist');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   });
 
+  // Switching account (or logging out) reloads that user's own wishlist.
   useEffect(() => {
-    localStorage.setItem('fursan_wishlist', JSON.stringify(wishlistIds));
-  }, [wishlistIds]);
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const parsed = saved ? JSON.parse(saved) : [];
+      setWishlistIds(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setWishlistIds([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(wishlistIds));
+    } catch {
+      /* storage unavailable */
+    }
+  }, [wishlistIds, storageKey]);
 
   const toggleWishlist = (productId: string) => {
     setWishlistIds(prev => {

@@ -42,7 +42,7 @@ export const NewsletterSection: React.FC = () => {
           </div>
 
           <AnimatedTitle
-            title={t('انضم إلى نادي سيليكشن القهوة المختصة', 'Join Selection Coffee Club')}
+            title={t('انضم إلى نادي سليكشن القهوة المختصة', 'Join Selection Coffee Club')}
             subtitle={t('احصل على إشعارات فورية عند وصول دفعة تحميص جديدة، عروض المجموعات، وكوبون خصم 10% لطلبك الأول.', 'Receive restock alerts for rare micro-lots, exclusive tasting bundles, and 10% OFF your first order.')}
             className="text-center"
           />

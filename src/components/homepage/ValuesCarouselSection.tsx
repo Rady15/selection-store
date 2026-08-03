@@ -72,8 +72,8 @@ export const ValuesCarouselSection: React.FC<ValuesCarouselSectionProps> = ({ it
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <AnimatedTitle
-            badge={t('قيم والتزامات سيليكشن القهوة', 'Our Core Brand Values')}
-            title={t('لماذا يختار المحترفون قهوة سيليكشن؟', 'Why Coffee Lovers Choose Selection?')}
+            badge={t('قيم والتزامات سليكشن القهوة', 'Our Core Brand Values')}
+            title={t('لماذا يختار المحترفون قهوة سليكشن؟', 'Why Coffee Lovers Choose Selection?')}
             subtitle={t('نلتزم بأعلى معايير الاستدامة والدقة لتقديم تجربة تحميك واستخلاص متكاملة.', 'Uncompromising standards from ethical direct farm sourcing to precision roasting.')}
           />
 

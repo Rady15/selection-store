@@ -16,6 +16,35 @@ const JWT_SECRET = process.env.JWT_SECRET || 'selection-dev-secret';
 const signToken = (user: any) =>
   jwt.sign({ sub: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
 
+// Every order must belong to a registered, non-blocked customer.
+// This guards POST /api/orders and the Stripe (create-intent / confirm /
+// sandbox-confirm) flows, so an order can never be completed by a guest.
+function requireLoggedInUser(res: any, userId: any): boolean {
+  if (!userId) {
+    res.status(401).json({
+      error_ar: 'يجب تسجيل الدخول لإتمام الطلب',
+      error_en: 'Login required to place an order'
+    });
+    return false;
+  }
+  const user = db.getUserById(String(userId));
+  if (!user) {
+    res.status(401).json({
+      error_ar: 'المستخدم غير موجود، يرجى تسجيل الدخول مجدداً',
+      error_en: 'User not found, please log in again'
+    });
+    return false;
+  }
+  if (user.blocked) {
+    res.status(403).json({
+      error_ar: 'تم حظر حسابك، لا يمكنك إتمام الطلب. يرجى التواصل مع الدعم',
+      error_en: 'Your account has been blocked, you cannot place orders'
+    });
+    return false;
+  }
+  return true;
+}
+
 app.use(express.json({ verify: (req: any, _res, buf) => { req.rawBody = buf; } }));
 
 // Wait until the durable store is loaded (no-op locally) before handling
@@ -219,6 +248,17 @@ app.post('/api/auth/register', (req, res) => {
     password
   });
 
+  db.addLoyaltyTransaction({
+    id: `lt-${Date.now()}-signup`,
+    user_id: user.id,
+    type: 'bonus',
+    points: 50,
+    amount_sar: 0,
+    description_ar: 'مكافأة تسجيل حساب جديد',
+    description_en: 'New account sign-up bonus',
+    created_at: new Date().toISOString()
+  });
+
   db.linkOrdersToUser(user.id, user.email);
   res.json({ user, token: signToken(user) });
 });
@@ -300,6 +340,16 @@ app.post('/api/auth/google', async (req, res) => {
         role: 'customer',
         loyalty_points: 50,
         addresses: [],
+        created_at: new Date().toISOString()
+      });
+      db.addLoyaltyTransaction({
+        id: `lt-${Date.now()}-signup`,
+        user_id: user.id,
+        type: 'bonus',
+        points: 50,
+        amount_sar: 0,
+        description_ar: 'مكافأة تسجيل حساب جديد',
+        description_en: 'New account sign-up bonus',
         created_at: new Date().toISOString()
       });
     }
@@ -391,16 +441,7 @@ app.get('/api/orders/:orderNumber', (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
   try {
-    const userId = req.body.user_id;
-    if (userId) {
-      const user = db.getUserById(userId);
-      if (!user) {
-        return res.status(404).json({ error_ar: 'المستخدم غير موجود', error_en: 'User not found' });
-      }
-      if (user.blocked) {
-        return res.status(403).json({ error_ar: 'تم حظر حسابك، لا يمكنك إتمام الطلب. يرجى التواصل مع الدعم', error_en: 'Your account has been blocked, you cannot place orders' });
-      }
-    }
+    if (!requireLoggedInUser(res, req.body.user_id)) return;
     const order = db.createOrder(req.body);
     await db.flush();
     res.json(order);
@@ -585,7 +626,7 @@ app.post('/api/reviews', (req, res) => {
   const review = db.addReview({
     product_id,
     user_id: user_id ? String(user_id) : undefined,
-    customer_name: (customer_name || '').trim() || 'عميل سيليكشن',
+    customer_name: (customer_name || '').trim() || 'عميل سليكشن',
     rating: numRating,
     title: (title || '').trim(),
     comment: String(comment).trim(),
@@ -920,6 +961,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
   if (!order || typeof order !== 'object' || !order.total_amount || !Array.isArray(order.items)) {
     return res.status(400).json({ error_ar: 'بيانات الطلب غير مكتملة', error_en: 'Incomplete order data' });
   }
+  if (!requireLoggedInUser(res, order.user_id)) return;
 
   const amountHalala = Math.round(order.total_amount * 100);
 
@@ -984,6 +1026,7 @@ app.post('/api/payments/confirm', async (req, res) => {
   if (!orderPayload) {
     return res.status(400).json({ error_ar: 'بيانات الطلب غير متوفرة', error_en: 'Order data is not available' });
   }
+  if (!requireLoggedInUser(res, orderPayload.user_id)) return;
 
   const order = db.createOrder({
     ...orderPayload,
@@ -1004,6 +1047,7 @@ app.post('/api/payments/sandbox-confirm', async (req, res) => {
   if (!order || typeof order !== 'object' || !order.total_amount || !Array.isArray(order.items)) {
     return res.status(400).json({ error_ar: 'بيانات الطلب غير مكتملة', error_en: 'Incomplete order data' });
   }
+  if (!requireLoggedInUser(res, order.user_id)) return;
   const created = db.createOrder({ ...order, status: 'pending', payment_status: 'paid' });
   await db.flush();
   res.json(created);

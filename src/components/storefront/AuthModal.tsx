@@ -8,9 +8,11 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (path: string) => void;
+  message?: string;
+  onSuccess?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigate }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigate, message, onSuccess }) => {
   const { language, t } = useLanguage();
   const { login, register, googleLogin } = useAuth();
   const isRtl = language === 'ar';
@@ -33,14 +35,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
     setError('');
   };
 
+  const finishAuth = () => {
+    resetForm();
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      onClose();
+    }
+  };
+
   const handleGoogleCredential = async (credential: string) => {
     setError('');
     setSubmitting(true);
     const result = await googleLogin(credential);
     if (result.success) {
-      resetForm();
-      onClose();
-      onNavigate('/account');
+      if (!onSuccess) onNavigate('/account');
+      finishAuth();
     } else {
       setError(result.error || t('فشل تسجيل الدخول بجوجل', 'Google login failed'));
     }
@@ -60,8 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
       }
       const result = await login(email, password);
       if (result.success) {
-        resetForm();
-        onClose();
+        finishAuth();
       } else {
         setError(result.error || t('خطأ في تسجيل الدخول', 'Login failed'));
       }
@@ -78,8 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
       }
       const result = await register(name, email, phone, password);
       if (result.success) {
-        resetForm();
-        onClose();
+        finishAuth();
       } else {
         setError(result.error || t('خطأ في إنشاء الحساب', 'Registration failed'));
       }
@@ -105,7 +113,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
           <div className="w-12 h-12 rounded-2xl bg-[#8C532B]/20 text-[#D99B26] flex items-center justify-center mx-auto mb-2">
           </div>
           <h3 className="font-extrabold text-xl text-white font-serif">
-            {mode === 'login' ? t('تسجيل الدخول إلى حسابك', 'Login to Your Account') : t('إنشاء حساب سيليكشن جديد', 'Register New Account')}
+            {mode === 'login' ? t('تسجيل الدخول إلى حسابك', 'Login to Your Account') : t('إنشاء حساب سليكشن جديد', 'Register New Account')}
           </h3>
           <p className="text-xs text-[#A69B93]">
             {mode === 'login'
@@ -113,6 +121,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onNavigat
               : t('احصل على 50 نقطة ولاء مجاناً واستمتع بتتبع طلباتك', 'Get 50 bonus loyalty points upon sign up')}
           </p>
         </div>
+
+        {message && (
+          <div className="flex items-center gap-2 bg-[#8C532B]/15 border border-[#D99B26]/40 rounded-xl p-3 text-[#D99B26] text-xs">
+            <Lock className="w-4 h-4 shrink-0" />
+            <span>{message}</span>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-xs">

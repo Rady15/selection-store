@@ -20,7 +20,7 @@ const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
     name_en: 'Yasser Al-Ghamdi',
     role_ar: 'مقتني قهوة مختصة - الرياض',
     role_en: 'Coffee Enthusiast - Riyadh',
-    comment_ar: 'محصول شلشلي الإثيوبي من سيليكشن لا يُعلى عليه. النكهة فاكهية واضحة جداً وتغليف الأظرف المقطرة ممتاز ومثالي للعمل.',
+    comment_ar: 'محصول شلشلي الإثيوبي من سليكشن لا يُعلى عليه. النكهة فاكهية واضحة جداً وتغليف الأظرف المقطرة ممتاز ومثالي للعمل.',
     comment_en: 'Ethiopia Chelchele crop from Selection is unmatched. Exceptionally clean berry profile, and the drip bag packaging is ideal for work.',
     rating: 5
   },
@@ -38,7 +38,7 @@ const DEFAULT_TESTIMONIALS: TestimonialItem[] = [
     name_en: 'Abdulmohsen Al-Khaled',
     role_ar: 'صاحب مقهى - الخبر',
     role_en: 'Cafe Owner - Khobar',
-    comment_ar: 'مزيج سيليكشن للإسبرسو ثابت الجودة ويعطي كريمة كثيفة ومذاقاً متوازناً مع اللاتيه يفضله جميع عملاء مقهانا.',
+    comment_ar: 'مزيج سليكشن للإسبرسو ثابت الجودة ويعطي كريمة كثيفة ومذاقاً متوازناً مع اللاتيه يفضله جميع عملاء مقهانا.',
     comment_en: 'Selection Signature Espresso blend is consistently remarkable. Yields thick crema and velvety milk texture.',
     rating: 5
   }
@@ -66,7 +66,7 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ items 
         <div className="text-center max-w-2xl mx-auto space-y-2 flex flex-col items-center">
           <AnimatedTitle
             badge={t('آراء وتوصيات العملاء', 'Customer Reviews')}
-            title={t('ماذا يقول مجتمع عشاق القهوة عن سيليكشن؟', 'What Our Coffee Community Says')}
+            title={t('ماذا يقول مجتمع عشاق القهوة عن سليكشن؟', 'What Our Coffee Community Says')}
             subtitle={t('آراء وتقييمات عملائنا الذين وثقوا في جودة تحميصنا ومحاصيلنا الفاخرة.', 'Real reviews from verified home baristas and coffee lovers across Saudi Arabia.')}
             className="text-center"
           />

@@ -32,7 +32,7 @@ export const AdminOrdersManager: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // A paid order is always shown as "تم الإنشاء" (Created) even if the fulfillment
-  // status was never bumped from pending (e.g. paid via Tabby/Tamara).
+  // status was never bumped from pending.
   const getEffectiveStatus = (o: Order): OrderStatus =>
     o.payment_status === 'paid' && o.status === 'pending' ? 'paid' : o.status;
 

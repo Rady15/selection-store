@@ -43,11 +43,11 @@ const usePg = Boolean(DATABASE_URL);
 // even one connection handles the traffic.
 const pgPool = usePg
   ? new pg.Pool({
-      connectionString: DATABASE_URL,
-      max: 5,
-      connectionTimeoutMillis: 10_000,
-      idleTimeoutMillis: 30_000
-    })
+    connectionString: DATABASE_URL,
+    max: 5,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000
+  })
   : null;
 
 const PG_TABLE = 'app_state';
@@ -103,7 +103,7 @@ const initialCategories: Category[] = [
   {
     id: 'cat-2',
     slug: 'tasting-boxes',
-    name_ar: 'الصناديق والمجموعات',
+    name_ar: 'البوكسات والمجموعات',
     name_en: 'Tasting Boxes & Bundles',
     description_ar: 'تشكيلات ومجموعات تجربة القهوة المميزة ومحاصيل التذوق',
     description_en: 'Curated coffee tasting boxes and special bundles',
@@ -339,11 +339,11 @@ const initialProducts: Product[] = [
   {
     id: 'prod-5',
     slug: 'selection-signature-espresso-blend',
-    name_ar: 'مزيج سيليكشن الإسبرسو الفاخر (Signature Blend)',
+    name_ar: 'مزيج سليكشن الإسبرسو الفاخر (Signature Blend)',
     name_en: 'Selection Signature Espresso Blend',
     subtitle_ar: 'قوام غني، شوكولاتة داكنة، كراميل، ومكسرات محمصة',
     subtitle_en: 'Rich body, Dark Chocolate, Caramel, and Toasted Nuts',
-    description_ar: 'مزيج سيليكشن الخاص المبتكر لتحضير مشروبات الإسبرسو والحليب (لاتيه، كابتشينو، فلات وايت). يدمج أفضل المحاصيل البرازيلية والكولومبية لمنحك كريمة كثيفة وطعماً متوازناً بلا حمضية مزعجة.',
+    description_ar: 'مزيج سليكشن الخاص المبتكر لتحضير مشروبات الإسبرسو والحليب (لاتيه، كابتشينو، فلات وايت). يدمج أفضل المحاصيل البرازيلية والكولومبية لمنحك كريمة كثيفة وطعماً متوازناً بلا حمضية مزعجة.',
     description_en: 'Our flagship espresso blend formulated specifically for rich espresso shots and milk-based drinks (Latte, Cappuccino, Flat White). Features thick crema, sweet chocolate notes, and a velvety smooth body.',
     category_id: 'cat-1',
     price: 58,
@@ -499,7 +499,7 @@ const initialProducts: Product[] = [
     tasting_notes_en: ['Ultra Precise', 'Stainless Burrs', 'Matte Black Aluminum'],
     origin_country_ar: 'مستورد احترافي',
     origin_country_en: 'Imported',
-    region_ar: 'أدوات سيليكشن',
+    region_ar: 'أدوات سليكشن',
     region_en: 'Selection Gear',
     altitude: '-',
     process_ar: '-',
@@ -567,9 +567,9 @@ const initialProducts: Product[] = [
   {
     id: 'prod-10',
     slug: 'selection-signature-ceramic-cup-220ml',
-    name_ar: 'كوب سيراميك سيليكشن الفاخر (220 مل)',
+    name_ar: 'كوب سيراميك سليكشن الفاخر (220 مل)',
     name_en: 'Selection Signature Ceramic Mug (220ml)',
-    subtitle_ar: 'مصنوع يدوياً بشعار سيليكشن المحفور وملمس حجري دافئ',
+    subtitle_ar: 'مصنوع يدوياً بشعار سليكشن المحفور وملمس حجري دافئ',
     subtitle_en: 'Handcrafted ceramic mug with engraved Selection emblem',
     description_ar: 'كوب سيراميك خاص مصمم خصيصاً لاحتساء الفلاتر والإسبرسو مع الحليب. سمك مدروس يحافظ على درجة حرارة القهوة وحافة مريحة للشفتين تبرز حلاوة المشروب.',
     description_en: 'Exclusive artisan ceramic cup with a tactile matte stone texture and engraved Selection gold foil accents. Designed specifically to enhance aroma and thermal retention for flat white, cappuccino, and filter coffee.',
@@ -623,13 +623,13 @@ const initialUsers: User[] = [
       {
         id: 'addr-1',
         title: 'مقر المقر الرئيسي',
-        full_name: 'إدارة سيليكشن القهوة',
+        full_name: 'إدارة سليكشن القهوة',
         phone: '+966500000000',
         country: 'المملكة العربية السعودية',
         city: 'الرياض',
         district: 'حي حطين',
         street: 'طريق الملك فهد',
-        building: 'برج سيليكشن 102',
+        building: 'برج سليكشن 102',
         postal_code: '13512',
         is_default: true
       }
@@ -779,7 +779,7 @@ const initialReviews: Review[] = [
     verified_purchase: true,
     status: 'approved',
     created_at: new Date(Date.now() - 5 * 86400000).toISOString(),
-    staff_reply_ar: 'شكراً لك أستاذ عبدالرحمن! يسعدنا جداً أن المحصول حاز على رضاك ونتمنى لك دائماً أوقاتاً ممتعة مع قهوة سيليكشن.',
+    staff_reply_ar: 'شكراً لك أستاذ عبدالرحمن! يسعدنا جداً أن المحصول حاز على رضاك ونتمنى لك دائماً أوقاتاً ممتعة مع قهوة سليكشن.',
     staff_reply_en: 'Thank you Abdulrahman! We are delighted that you enjoyed our Chelchele crop.'
   }
 ];
@@ -809,7 +809,7 @@ const initialHomepageSections: HomepageSection[] = [
           id: 'slide-1',
           badge_ar: 'محاصيل الموسم الجديدة',
           badge_en: 'NEW SEASON CROPS',
-          title_ar: 'سيليكشن القهوة المختصة - أصالة النكهة وحرفية التحميص',
+          title_ar: 'سليكشن القهوة المختصة - أصالة النكهة وحرفية التحميص',
           title_en: 'Selection Specialty Coffee - Craft Roasting & Pure Origin',
           subtitle_ar: 'اكتشف أنقى محاصيل القهوة العالية التقييم والمحمصة أسبوعياً طازجة باحترافية عالية',
           subtitle_en: 'Discover top-rated single origin specialty crops freshly roasted every week',
@@ -876,7 +876,7 @@ const initialHomepageSections: HomepageSection[] = [
     type: 'product_carousel',
     title_ar: 'أحدث المحاصيل والمنتجات',
     title_en: 'New Arrivals & Fresh Crops',
-    subtitle_ar: 'محاصيل جديدة وصلت حديثاً لمحمصة سيليكشن',
+    subtitle_ar: 'محاصيل جديدة وصلت حديثاً لمحمصة سليكشن',
     subtitle_en: 'Freshly arrived crops and new specialty additions',
     is_enabled: true,
     sort_order: 5,
@@ -896,7 +896,7 @@ const initialHomepageSections: HomepageSection[] = [
   {
     id: 'sec-values-carousel',
     type: 'values_carousel',
-    title_ar: 'قيم والتزامات سيليكشن القهوة',
+    title_ar: 'قيم والتزامات سليكشن القهوة',
     title_en: 'Our Core Brand Values & Guarantees',
     is_enabled: true,
     sort_order: 7,
@@ -939,7 +939,7 @@ const initialHomepageSections: HomepageSection[] = [
     is_enabled: true,
     sort_order: 10,
     config: {
-      title_ar: 'فلسفة التحميص في محمصة سيليكشن القهوة',
+      title_ar: 'فلسفة التحميص في محمصة سليكشن القهوة',
       title_en: 'The Roasting Philosophy at Selection Coffee',
       subtitle_ar: 'نحن لا نحمص القهوة فحسب، بل ننقب عن أجود السلالات حول العالم من المزارع المستدامة مباشرة.',
       subtitle_en: 'We do not just roast beans; we carefully source top 1% specialty micro-lots directly from ethical farmers.',
@@ -949,7 +949,7 @@ const initialHomepageSections: HomepageSection[] = [
   {
     id: 'sec-testimonials',
     type: 'testimonials',
-    title_ar: 'ماذا يقول عملاؤنا عن قهوة سيليكشن؟',
+    title_ar: 'ماذا يقول عملاؤنا عن قهوة سليكشن؟',
     title_en: 'What Our Coffee Community Says',
     is_enabled: true,
     sort_order: 11,
@@ -981,7 +981,7 @@ const initialAnnouncementBar: AnnouncementBarConfig = {
 };
 
 const initialStoreSettings: StoreSettings = {
-  store_name_ar: 'محمصة سيليكشن القهوة المختصة',
+  store_name_ar: 'محمصة سليكشن القهوة المختصة',
   store_name_en: 'Selection Specialty Coffee Roasters',
   vat_number: '310928374800003',
   vat_rate: 0.15,
@@ -1008,7 +1008,7 @@ const initialQuizConfig: QuizConfig = {
     badge_en: 'Interactive Coffee Selector',
     title_ar: 'اكتشف المحصول المخصص لذوقك بـ 30 ثانية',
     title_en: 'Discover Your Ideal Specialty Crop in 30 Secs',
-    subtitle_ar: 'أجب عن 3 أسئلة بسيطة وسيقوم الخوارزمية الخاصة بسيليكشن باقتراح القهوة الأكثر ملاءمة لمعايير تحضيرك.',
+    subtitle_ar: 'أجب عن 3 أسئلة بسيطة وسيقوم الخوارزمية الخاصة بسليكشن باقتراح القهوة الأكثر ملاءمة لمعايير تحضيرك.',
     subtitle_en: 'Answer 3 simple questions to find the perfect micro-lot matched to your brew preference.'
   },
   questions: [
@@ -1284,7 +1284,7 @@ class Database {
           'INSERT INTO ' + PG_TABLE + ' (key, value, updated_at) VALUES ($1, $2::jsonb, now()) ' +
           'ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()',
           [PG_DOC_KEY, JSON.stringify(this.state)]
-        ).then(() => {}).catch(err => console.error('Postgres save error:', err))
+        ).then(() => { }).catch(err => console.error('Postgres save error:', err))
       ).then(() => { this._flushGen += 1; });
     } else if (useKV) {
       // Fire-and-forget but serialized: every mutation enqueues behind the
@@ -1700,7 +1700,7 @@ class Database {
   createOrder(orderData: Omit<Order, 'id' | 'order_number' | 'created_at' | 'status_history'>) {
     const orderNumber = `FK-${Math.floor(10000 + Math.random() * 90000)}`;
     const timestamp = new Date().toISOString();
-    // Orders paid upfront (e.g. Tabby/Tamara) are immediately marked "تم الدفع".
+    // Orders paid upfront are immediately marked "تم الدفع".
     const paidUpfront = orderData.payment_status === 'paid' && orderData.status === 'pending';
     const newOrder: Order = {
       ...orderData,
@@ -1814,6 +1814,7 @@ class Database {
   updateOrderStatus(orderId: string, status: Order['status'], note_ar?: string, note_en?: string) {
     const order = this.state.orders.find(o => o.id === orderId);
     if (order) {
+      const wasCancelled = order.status === 'cancelled';
       order.status = status;
       order.status_history.push({
         status,
@@ -1821,6 +1822,50 @@ class Database {
         note_ar: note_ar || `تغيرت حالة الطلب إلى ${status}`,
         note_en: note_en || `Order status updated to ${status}`
       });
+
+      // Keep the loyalty balance consistent: when an order is cancelled,
+      // refund the points that were redeemed on it and claw back the points
+      // that were earned from it.
+      if (status === 'cancelled' && !wasCancelled && order.user_id) {
+        const user = this.getUserById(order.user_id);
+        const now = new Date().toISOString();
+        if (user) {
+          if (order.loyalty_points_used && order.loyalty_points_used > 0) {
+            user.loyalty_points += order.loyalty_points_used;
+            this.updateUser(user);
+            this.state.loyaltyTransactions.push({
+              id: `lt-${Date.now()}-refund`,
+              user_id: user.id,
+              type: 'bonus',
+              points: order.loyalty_points_used,
+              amount_sar: order.loyalty_discount || 0,
+              order_id: order.id,
+              description_ar: `استرداد نقاط من طلب ملغي ${order.order_number}`,
+              description_en: `Points refunded from cancelled order ${order.order_number}`,
+              created_at: now
+            });
+          }
+          if (order.loyalty_points_earned && order.loyalty_points_earned > 0) {
+            const clawback = Math.min(user.loyalty_points, order.loyalty_points_earned);
+            user.loyalty_points -= clawback;
+            this.updateUser(user);
+            if (clawback > 0) {
+              this.state.loyaltyTransactions.push({
+                id: `lt-${Date.now()}-clawback`,
+                user_id: user.id,
+                type: 'redeemed',
+                points: clawback,
+                amount_sar: 0,
+                order_id: order.id,
+                description_ar: `سحب نقاط من طلب ملغي ${order.order_number}`,
+                description_en: `Points reversed from cancelled order ${order.order_number}`,
+                created_at: now
+              });
+            }
+          }
+        }
+      }
+
       this.saveState();
     }
     return order;

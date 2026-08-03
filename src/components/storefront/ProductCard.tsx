@@ -3,6 +3,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
+import { useUI } from '../../context/UIContext';
 import { Product, GrindType } from '../../types';
 import { grindLabels } from '../../utils/coffee';
 import {
@@ -25,6 +27,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
   const { formatPrice } = useCurrency();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { user } = useAuth();
+  const { openAuth } = useUI();
 
   const [selectedGrind, setSelectedGrind] = useState<GrindType>(product.grind_options?.[0] || 'beans');
   const [selectedWeight, setSelectedWeight] = useState<string>(product.weight_options?.[0]?.value || '250g');
@@ -35,6 +39,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
   const currentPrice = product.sale_price ?? product.price;
   const hasDiscount = product.sale_price && product.sale_price < product.price;
   const discountPercent = hasDiscount ? Math.round(((product.price - product.sale_price!) / product.price) * 100) : 0;
+
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      openAuth({
+        message: t('سجّل الدخول أو أنشئ حساباً لحفظ المنتجات في قائمة المفضلة', 'Login or create an account to save products to your wishlist'),
+        onSuccess: () => toggleWishlist(product.id)
+      });
+      return;
+    }
+    toggleWishlist(product.id);
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -90,10 +106,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
 
         {/* Top Left Wishlist Button */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleWishlist(product.id);
-          }}
+          onClick={handleWishlistClick}
           className={`absolute top-3 left-3 p-2 rounded-full backdrop-blur-md transition z-10 cursor-pointer ${isLiked
               ? 'bg-red-500 text-white shadow-lg shadow-red-500/40'
               : 'bg-[#110E0C]/60 text-[#D4C3B5] hover:text-white hover:bg-[#8C532B]'

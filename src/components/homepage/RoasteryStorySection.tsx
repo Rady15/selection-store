@@ -37,13 +37,13 @@ export const RoasteryStorySection: React.FC<RoasteryStorySectionProps> = ({
         {/* Text Story Column */}
         <div className="space-y-6">
           <AnimatedTitle
-            badge={t('قصة سيليكشن وحرفية التحميص', 'Our Roasting Craftsmanship')}
+            badge={t('قصة سليكشن وحرفية التحميص', 'Our Roasting Craftsmanship')}
             title={title_ar ? t(title_ar, title_en || '') : t('نحن لا نحمص القهوة فحسب، بل نروي قصة الأرض والمزارع', 'We Don\'t Just Roast Coffee, We Tell The Story of Origin')}
           />
 
           <p className="text-sm sm:text-base text-[#D4C3B5] leading-relaxed">
             {subtitle_ar ? t(subtitle_ar, subtitle_en || '') : t(
-              'في محمصة سيليكشن القهوة، ننقب عن أفضل 1% من محاصيل القهوة المختصة عالمياً من مزارع إثيوبيا وكولومبيا والسلفادور وجبال الخولان بجازان. نطبق أعلى درجات العناية في ملف التحميص لإبراز سحر النكهات الطبيعية بدون إضافات.',
+              'في محمصة سليكشن القهوة، ننقب عن أفضل 1% من محاصيل القهوة المختصة عالمياً من مزارع إثيوبيا وكولومبيا والسلفادور وجبال الخولان بجازان. نطبق أعلى درجات العناية في ملف التحميص لإبراز سحر النكهات الطبيعية بدون إضافات.',
               'At Selection Coffee, we meticulously source the top 1% specialty micro-lots directly from ethical family farms in Ethiopia, Colombia, El Salvador, and Jazan mountains. Every profile is roasted to unveil pure origin terroir.'
             )}
           </p>

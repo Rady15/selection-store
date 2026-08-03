@@ -3,6 +3,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
 import { Product, GrindType } from '../types';
 import { grindLabels } from '../utils/coffee';
 import FlavorChart from '../components/storefront/FlavorChart';
@@ -26,7 +28,11 @@ import {
   Award,
   ChevronRight,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Link as LinkIcon,
+  MessageCircle,
+  Send,
+  CheckCheck
 } from 'lucide-react';
 
 interface ProductDetailPageProps {
@@ -39,6 +45,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
   const { formatPrice } = useCurrency();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { user } = useAuth();
+  const { openAuth } = useUI();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -52,7 +60,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
   const [activeTab, setActiveTab] = useState<'details' | 'reviews' | 'questions'>('details');
   const [showStockAlertModal, setShowStockAlertModal] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -122,10 +131,81 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
     setTimeout(() => setAddedSuccess(false), 2000);
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+  const handleShare = async (channel?: 'clipboard' | 'whatsapp' | 'telegram' | 'x') => {
+    const url = window.location.href;
+    const text = product
+      ? t(`جرب ${product.name_ar} من محمصة سليكشن`, `Try ${product.name_en} from Selection Roasters`)
+      : t('منتج مميز من محمصة سليكشن', 'Featured product from Selection Roasters');
+    const encodedUrl = encodeURIComponent(url);
+    const encodedText = encodeURIComponent(text);
+
+    try {
+      if (channel === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodedText}%20${encodedUrl}`, '_blank', 'noopener');
+        return;
+      }
+      if (channel === 'telegram') {
+        window.open(`https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, '_blank', 'noopener');
+        return;
+      }
+      if (channel === 'x') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'noopener');
+        return;
+      }
+
+      // clipboard (default): prefer the native Web Share API on mobile, then
+      // the Clipboard API, then a hidden textarea fallback for older browsers
+      // / non-HTTPS contexts where navigator.clipboard is unavailable.
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: document.title, text, url });
+          return;
+        } catch (err: any) {
+          if (err?.name === 'AbortError') return;
+          // fall through to clipboard copy
+        }
+      }
+
+      let copied = false;
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(url);
+          copied = true;
+        } catch {
+          copied = false;
+        }
+      }
+      if (!copied) {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+          copied = document.execCommand('copy');
+        } catch {
+          copied = false;
+        }
+        document.body.removeChild(ta);
+      }
+      setShareCopied(copied);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      console.error('Share failed:', err);
+    }
+  };
+
+  const handleWishlistClick = () => {
+    if (!user) {
+      openAuth({
+        message: t('سجّل الدخول أو أنشئ حساباً لحفظ هذا المنتج في قائمة المفضلة', 'Login or create an account to save this product to your wishlist'),
+        onSuccess: () => toggleWishlist(product?.id || '')
+      });
+      return;
+    }
+    if (product) toggleWishlist(product.id);
   };
 
   return (
@@ -145,7 +225,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
           {/* Gallery Column */}
-          <div className="space-y-4">
+          <div className="relative space-y-4">
             <div className="aspect-square rounded-3xl bg-[#1C1613] border border-[#2A221E] overflow-hidden relative shadow-2xl">
               <img
                 src={product.images[activeImageIdx] || product.images[0]}
@@ -156,22 +236,60 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
               {/* Wishlist & Share buttons */}
               <div className="absolute top-4 right-4 flex gap-2">
                 <button
-                  onClick={() => toggleWishlist(product.id)}
+                  onClick={handleWishlistClick}
                   className={`p-3 rounded-full backdrop-blur-md transition cursor-pointer ${isLiked ? 'bg-red-500 text-white shadow-lg' : 'bg-[#110E0C]/70 text-[#D4C3B5] hover:text-white'
                     }`}
+                  title={t('إضافة للمفضلة', 'Wishlist')}
                 >
                   <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
                 </button>
 
                 <button
-                  onClick={handleShare}
-                  className="p-3 rounded-full bg-[#110E0C]/70 backdrop-blur-md text-[#D4C3B5] hover:text-white transition cursor-pointer"
+                  onClick={() => setShareOpen(o => !o)}
+                  className={`p-3 rounded-full backdrop-blur-md transition cursor-pointer ${shareOpen ? 'bg-[#D99B26] text-black' : 'bg-[#110E0C]/70 text-[#D4C3B5] hover:text-white'}`}
                   title={t('مشاركة الرابط', 'Share Link')}
                 >
-                  {copiedLink ? <Check className="w-5 h-5 text-emerald-400" /> : <Share2 className="w-5 h-5" />}
+                  {shareCopied ? <CheckCheck className="w-5 h-5 text-emerald-400" /> : <Share2 className="w-5 h-5" />}
                 </button>
               </div>
             </div>
+
+            {/* Share options popover */}
+            {shareOpen && (
+              <div className="absolute top-16 right-0 z-20 bg-[#1C1613] border border-[#2A221E] rounded-2xl shadow-2xl p-3 w-56 space-y-1 animate-fade-in">
+                <p className="text-[10px] font-bold text-[#A69B93] px-1 pb-1">
+                  {t('مشاركة هذا المنتج', 'Share this product')}
+                </p>
+                <button
+                  onClick={() => { setShareOpen(false); handleShare('clipboard'); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-xs text-[#F8F5F0] hover:bg-[#2A221E] transition cursor-pointer"
+                >
+                  {shareCopied ? <CheckCheck className="w-4 h-4 text-emerald-400" /> : <LinkIcon className="w-4 h-4 text-[#D99B26]" />}
+                  {shareCopied ? t('تم النسخ!', 'Copied!') : t('نسخ الرابط', 'Copy link')}
+                </button>
+                <button
+                  onClick={() => { setShareOpen(false); handleShare('whatsapp'); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-xs text-[#F8F5F0] hover:bg-[#2A221E] transition cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-400" />
+                  {t('واتساب', 'WhatsApp')}
+                </button>
+                <button
+                  onClick={() => { setShareOpen(false); handleShare('telegram'); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-xs text-[#F8F5F0] hover:bg-[#2A221E] transition cursor-pointer"
+                >
+                  <Send className="w-4 h-4 text-sky-400" />
+                  {t('تيليجرام', 'Telegram')}
+                </button>
+                <button
+                  onClick={() => { setShareOpen(false); handleShare('x'); }}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-xs text-[#F8F5F0] hover:bg-[#2A221E] transition cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4 text-[#A69B93]" />
+                  {t('X / تويتر', 'X / Twitter')}
+                </button>
+              </div>
+            )}
 
             {/* Thumbnails */}
             {product.images.length > 1 && (
@@ -271,8 +389,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
                       key={w.value}
                       onClick={() => setSelectedWeight(w.value)}
                       className={`p-3 rounded-2xl text-xs font-bold transition border cursor-pointer ${selectedWeight === w.value
-                          ? 'bg-[#8C532B] text-white border-[#D99B26] shadow-lg shadow-[#8C532B]/30'
-                          : 'bg-[#1C1613] text-[#D4C3B5] border-[#2A221E] hover:border-[#8C532B]'
+                        ? 'bg-[#8C532B] text-white border-[#D99B26] shadow-lg shadow-[#8C532B]/30'
+                        : 'bg-[#1C1613] text-[#D4C3B5] border-[#2A221E] hover:border-[#8C532B]'
                         }`}
                     >
                       {language === 'ar' ? w.label_ar : w.label_en}
@@ -292,8 +410,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
                       key={g}
                       onClick={() => setSelectedGrind(g)}
                       className={`p-2.5 rounded-xl text-xs font-medium transition border cursor-pointer ${selectedGrind === g
-                          ? 'bg-[#8C532B] text-white border-[#D99B26]'
-                          : 'bg-[#1C1613] text-[#D4C3B5] border-[#2A221E] hover:border-[#8C532B]'
+                        ? 'bg-[#8C532B] text-white border-[#D99B26]'
+                        : 'bg-[#1C1613] text-[#D4C3B5] border-[#2A221E] hover:border-[#8C532B]'
                         }`}
                     >
                       {grindLabels[g]?.[language] || g}
@@ -339,8 +457,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
                   <button
                     onClick={handleAddToCart}
                     className={`flex-1 py-4 rounded-2xl text-xs sm:text-sm font-extrabold transition shadow-2xl flex items-center justify-center gap-2 cursor-pointer ${addedSuccess
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-[#8C532B] hover:bg-[#A86434] text-white shadow-[#8C532B]/40'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-[#8C532B] hover:bg-[#A86434] text-white shadow-[#8C532B]/40'
                       }`}
                   >
                     {addedSuccess ? (

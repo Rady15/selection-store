@@ -31,7 +31,7 @@
   - Guest checkout & Quick login integration.
   - Saudi City & District auto-complete selector.
   - Real-time Shipping calculator (SMSA, Aramex, Fastlo, Local Express, Store Pickup).
-  - Payment Gateways: Mada, Apple Pay, Visa/Mastercard, Tabby, Tamara (3/4 split payments), Cash on Delivery.
+  - Payment Gateways: Mada, Apple Pay, Visa/Mastercard, Cash on Delivery.
   - Automated tax invoice with VAT 15% breakdown and QR code.
 - **Customer Account Portal**:
   - Order History & Live 5-stage shipment timeline.

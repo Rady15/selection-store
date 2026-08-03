@@ -18,7 +18,7 @@ interface TaxInvoiceOptions {
 }
 
 const fallbackSettings: TaxInvoiceSettings = {
-  store_name_ar: 'محمصة سيليكشن القهوة المختصة',
+  store_name_ar: 'محمصة سليكشن القهوة المختصة',
   store_name_en: 'Selection Specialty Coffee Roasters',
   vat_number: '310928374800003',
   vat_rate: 0.15,
@@ -32,8 +32,6 @@ const PAYMENT_LABELS: Record<string, [string, string]> = {
   mada: ['مدى', 'Mada'],
   visa: ['فيزا / ماستركارد', 'Visa / Mastercard'],
   apple_pay: ['Apple Pay', 'Apple Pay'],
-  tabby: ['تابي', 'Tabby'],
-  tamara: ['تمارا', 'Tamara'],
   cod: ['الدفع عند الاستلام', 'Cash on Delivery']
 };
 
@@ -231,7 +229,7 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
 
     <div class="foot">
       <div class="note">
-        ${t('فاتورة ضريبية صادرة وفقاً لأحكام ضريبة القيمة المضافة في المملكة العربية السعودية. شكراً لتسوقك من سيليكشن.', 'Tax invoice issued in accordance with the Saudi VAT regulations. Thank you for shopping with Selection.')}
+        ${t('فاتورة ضريبية صادرة وفقاً لأحكام ضريبة القيمة المضافة في المملكة العربية السعودية. شكراً لتسوقك من سليكشن.', 'Tax invoice issued in accordance with the Saudi VAT regulations. Thank you for shopping with Selection.')}
       </div>
       <div>
         ${t('تاريخ الإصدار:', 'Issued:')} ${new Date().toLocaleString(language === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })}

@@ -131,7 +131,7 @@ export interface User {
 }
 
 export type OrderStatus = 'pending' | 'paid' | 'roasting' | 'shipped' | 'delivered' | 'cancelled';
-export type PaymentMethod = 'mada' | 'apple_pay' | 'visa' | 'tabby' | 'tamara' | 'cod';
+export type PaymentMethod = 'mada' | 'apple_pay' | 'visa' | 'cod';
 export type ShippingMethod = 'smsa' | 'aramex' | 'fastlo' | 'store_pickup';
 
 export interface OrderItem {

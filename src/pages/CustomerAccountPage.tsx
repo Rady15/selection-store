@@ -6,6 +6,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { usePolling } from '../hooks/usePolling';
 import { Order, Product, Address, Review, OrderItem } from '../types';
 import ProductGrid from '../components/storefront/ProductGrid';
+import LoginGate from '../components/storefront/LoginGate';
 import {
   User,
   Package,
@@ -47,6 +48,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
   const { language, t } = useLanguage();
   const { formatPrice } = useCurrency();
   const { user, logout, updateUserInState } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const { wishlistIds } = useWishlist();
 
   const initialTab = (() => {
@@ -87,6 +89,14 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
     }
   }, [user]);
 
+  // Admins get their own dashboard; send them there from the account page.
+  useEffect(() => {
+    if (user && isAdmin) {
+      onNavigate('/admin');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isAdmin]);
+
   const loadOrders = useCallback(() => {
     if (!user) return;
     fetch(`/api/orders?user_id=${user.id}`)
@@ -120,6 +130,23 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
         .catch(err => console.error(err));
     }
   }, [user]);
+
+  // Refresh the user record (loyalty balance, addresses) from the server so
+  // points earned/redeemed in recent orders show immediately.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetch(`/api/users/${user.id}`)
+      .then(res => (res.ok ? res.json() : null))
+      .then(fresh => {
+        if (!cancelled && fresh && user) {
+          updateUserInState({ ...user, ...fresh });
+        }
+      })
+      .catch(err => console.error(err));
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     if (user) {
@@ -257,19 +284,16 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
     setAddressFormOpen(true);
   };
 
-  if (!user) {
+  if (user && isAdmin) {
     return (
-      <div className="bg-[#110E0C] text-white min-h-screen py-20 text-center space-y-4">
-        <User className="w-16 h-16 text-[#8C532B] mx-auto" />
-        <h2 className="text-2xl font-bold">{t('يرجى تسجيل الدخول لعرض حسابك', 'Please login to view your account')}</h2>
-        <button
-          onClick={() => onNavigate('/')}
-          className="bg-[#8C532B] text-white px-6 py-2 rounded-xl text-xs font-bold cursor-pointer"
-        >
-          {t('العودة للرئيسية', 'Back to Home')}
-        </button>
+      <div className="min-h-[70vh] flex items-center justify-center text-sm text-[#A69B93]">
+        {t('جاري التحويل إلى لوحة التحكم...', 'Redirecting to admin dashboard...')}
       </div>
     );
+  }
+
+  if (!user) {
+    return <LoginGate onNavigate={onNavigate}>{null}</LoginGate>;
   }
 
   return (
@@ -290,7 +314,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
 
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-2xl bg-[#8C532B]/20 border border-[#8C532B]/40 text-center">
-              <span className="text-[10px] text-[#A69B93] block">{t('رصيد نقاط سيليكشن', 'Loyalty Points')}</span>
+              <span className="text-[10px] text-[#A69B93] block">{t('رصيد نقاط سليكشن', 'Loyalty Points')}</span>
               <span className="font-extrabold text-lg text-[#D99B26]">{user.loyalty_points} {t('نقطة', 'pts')}</span>
             </div>
 
@@ -445,7 +469,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
               <div className="w-16 h-16 rounded-full bg-[#8C532B]/20 text-[#D99B26] flex items-center justify-center mx-auto">
               </div>
 
-              <h3 className="font-extrabold text-xl text-white font-serif">{t('نادي سيليكشن للولاء والمكافآت', 'Selection Rewards Club')}</h3>
+              <h3 className="font-extrabold text-xl text-white font-serif">{t('نادي سليكشن للولاء والمكافآت', 'Selection Rewards Club')}</h3>
               <p className="text-xs text-[#D4C3B5] leading-relaxed">
                 {t('تكسب 1 نقطة مقابل كل 1 ﷼ تنفقه في شراء محاصيل القهوة. استبدل نقاطك بكوبونات خصم أو شحن مجاني عند السلة.', 'Earn 1 point for every 1 SAR spent. Redeem points for discount coupons at checkout.')}
               </p>

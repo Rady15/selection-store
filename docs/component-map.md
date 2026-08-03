@@ -6,7 +6,7 @@
 - `MobileMenu.tsx`: Drawer for mobile screens with accordion categories, search, language toggle, and account shortcuts.
 - `SearchOverlay.tsx`: Real-time modal search with debounced backend query, recent search memory, trending keywords, and product preview list.
 - `CartDrawer.tsx`: Slide-in cart drawer with free shipping progress bar, quantity controls, grind type display, coupon input, and checkout CTA.
-- `Footer.tsx`: Newsletter form, quick links, category links, payment badges (Mada, Visa, Apple Pay, Tabby, Tamara), VAT registration number, social links, copyright.
+- `Footer.tsx`: Newsletter form, quick links, category links, payment badges (Mada, Visa, Mastercard, Apple Pay), VAT registration number, social links, copyright.
 - `ProductCard.tsx`: Reusable product card with dual hover images, tasting notes pills, grind size selection modal/action, wishlist button, stock badges, rating stars.
 - `ProductGrid.tsx`: Grid or carousel renderer for product lists with loading skeleton states.
 - `ProductQuickViewModal.tsx`: Fast product inspection overlay.

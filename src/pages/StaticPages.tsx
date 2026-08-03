@@ -47,7 +47,7 @@ export const AboutPage: React.FC<PageProps> = () => {
             </div>
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold font-serif animate-cup-fill">
-            {t('قصة محمصة سيليكشن القهوة المختصة', 'About Selection Coffee Roasters')}
+            {t('قصة محمصة سليكشن القهوة المختصة', 'About Selection Coffee Roasters')}
           </h1>
           <p className="text-xs sm:text-sm text-[#A69B93] max-w-xl mx-auto leading-relaxed">
             {t(
@@ -90,7 +90,7 @@ export const AboutPage: React.FC<PageProps> = () => {
             {t('رؤيتنا ورسالتنا', 'Our Vision & Heritage')}
           </h3>
           <p>
-            تأسست محمصة سيليكشن القهوة في العاصمة الرياض بهدف إعادة تعريف تجربة تذوق القهوة المختصة في المملكة والخليج العربي. نحن نؤمن بأن كل حبة قهوة تحمل هوية أرضها وتضاريس مزارعها.
+            تأسست محمصة سليكشن القهوة في العاصمة الرياض بهدف إعادة تعريف تجربة تذوق القهوة المختصة في المملكة والخليج العربي. نحن نؤمن بأن كل حبة قهوة تحمل هوية أرضها وتضاريس مزارعها.
           </p>
           <p>
             يقوم فريقنا المحترف من المحمصين المعتمدين من جمعية القهوة المختصة (SCA) بضبط منحنيات التحميص بعناية فائقة لكافة أنواع التحضير سواء للتقطير والفلتر أو الإسبرسو أو القهوة السعودية الأصيلة.
@@ -172,7 +172,7 @@ export const WholesalePage: React.FC<PageProps> = () => {
                   required
                   value={company}
                   onChange={e => setCompany(e.target.value)}
-                  placeholder="مقهى سيليكشن المختص"
+                  placeholder="مقهى سليكشن المختص"
                   className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-3 text-white focus:outline-none focus:border-[#D99B26]"
                 />
               </div>
@@ -345,7 +345,7 @@ export const TermsPage: React.FC<PageProps> = () => {
 
           <div>
             <h4 className="font-bold text-white text-sm mb-2">1. {t('التعريفات', 'Definitions')}</h4>
-            <p>{t('يشمل مصطلح "المتجر" موقع سيليكشن للقهوة المختصة إلكترونياً. "العميل" هو أي شخص يقوم بشراء منتجات من المتجر. "المنتجات" تشمل البن المحمص وأدوات التحضير والأكواب والبطاقات الإلكترونية.', '"The Store" refers to Selection Specialty Coffee online store. "Customer" is any person purchasing products. "Products" include roasted coffee, brewing equipment, cups, and e-gift cards.')}</p>
+            <p>{t('يشمل مصطلح "المتجر" موقع سليكشن للقهوة المختصة إلكترونياً. "العميل" هو أي شخص يقوم بشراء منتجات من المتجر. "المنتجات" تشمل البن المحمص وأدوات التحضير والأكواب والبطاقات الإلكترونية.', '"The Store" refers to Selection Specialty Coffee online store. "Customer" is any person purchasing products. "Products" include roasted coffee, brewing equipment, cups, and e-gift cards.')}</p>
           </div>
 
           <div>
@@ -355,7 +355,7 @@ export const TermsPage: React.FC<PageProps> = () => {
 
           <div>
             <h4 className="font-bold text-white text-sm mb-2">3. {t('الطلب والدفع', 'Ordering & Payment')}</h4>
-            <p>{t('تُعتبر الطلبات مقبولة فقط بعد تأكيد الدفع بنجاح. نقبل الدفع عبر مدى، Apple Pay، تابي، تمارا، فيزا/ماستركارد، والدفع عند الاستلام. يتم تجهيز الطلب خلال 24 ساعة عمل بعد تأكيد الدفع.', 'Orders are accepted only upon successful payment confirmation. We accept Mada, Apple Pay, Tabby, Tamara, Visa/Mastercard, and COD. Orders are processed within 24 business hours after payment confirmation.')}</p>
+            <p>{t('تُعتبر الطلبات مقبولة فقط بعد تأكيد الدفع بنجاح. نقبل الدفع عبر مدى، Apple Pay، فيزا/ماستركارد، والدفع عند الاستلام. يتم تجهيز الطلب خلال 24 ساعة عمل بعد تأكيد الدفع.', 'Orders are accepted only upon successful payment confirmation. We accept Mada, Apple Pay, Visa/Mastercard, and COD. Orders are processed within 24 business hours after payment confirmation.')}</p>
           </div>
 
           <div>
@@ -502,10 +502,10 @@ export const FaqPage: React.FC<PageProps> = () => {
       a_en: 'Yes! Free express shipping applies on all orders above 199 ﷼ anywhere in KSA.'
     },
     {
-      q_ar: 'هل توفرون خيارات التقسيط بدون فوائد؟',
-      q_en: 'Do you offer interest-free installment options?',
-      a_ar: 'نعم، يمكنك الدفع مقسم على 4 دفعات بدون فوائد أو رسوم إضافية عبر تابي (Tabby) أو تمارا (Tamara).',
-      a_en: 'Yes, split into 4 interest-free payments via Tabby and Tamara.'
+      q_ar: 'هل توفرون خيارات الدفع عند الاستلام؟',
+      q_en: 'Do you offer Cash on Delivery?',
+      a_ar: 'نعم، يمكنك الدفع نقداً أو بالبطاقة عند الاستلام برسوم إضافية 15 ﷼، أو الدفع مقدماً عبر مدى، فيزا/ماستركارد، أو Apple Pay.',
+      a_en: 'Yes, you can pay in cash or by card on delivery for a 15 ﷼ surcharge, or pay upfront via Mada, Visa/Mastercard, or Apple Pay.'
     },
     {
       q_ar: 'ما الفرق بين القهوة المغسولة والمعالجة بالتجفيف الطبيعي؟',
@@ -740,7 +740,7 @@ export const SubscriptionsPage: React.FC<PageProps> = ({ onNavigate }) => {
 
         <div className="text-center space-y-3">
           <Calendar className="w-12 h-12 text-[#D99B26] mx-auto" />
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-serif">{t('اشتراكات القهوة الشهري - نادي سيليكشن', 'Selection Coffee Subscription Club')}</h1>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white font-serif">{t('اشتراكات القهوة الشهري - نادي سليكشن', 'Selection Coffee Subscription Club')}</h1>
           <p className="text-xs sm:text-sm text-[#A69B93] max-w-lg mx-auto">
             {t('قهوتك المفضلة تصلك محمصة طازجة لباب بيتك أسبوعياً أو شهرياً بدون عناء إعادة الطلب وبخصم حالم.', 'Freshly roasted micro-lots delivered to your doorstep automatically with exclusive perks.')}
           </p>
@@ -1096,7 +1096,7 @@ export const GiftCardsPage: React.FC<PageProps> = () => {
         <div className="text-center space-y-3">
           <Gift className="w-12 h-12 text-[#D99B26] mx-auto" />
           <h1 className="text-3xl font-extrabold text-white font-serif">{t('بطاقات الهدايا الإلكترونية', 'e-Gift Cards')}</h1>
-          <p className="text-xs text-[#A69B93]">{t('أهدِ من تحب تجربة اختيار محاصيلهم وأدواتهم المفضلة من محمصة سيليكشن القهوة.', 'Gift coffee lovers an instant digital voucher for coffee and gear.')}</p>
+          <p className="text-xs text-[#A69B93]">{t('أهدِ من تحب تجربة اختيار محاصيلهم وأدواتهم المفضلة من محمصة سليكشن القهوة.', 'Gift coffee lovers an instant digital voucher for coffee and gear.')}</p>
         </div>
 
         <div className="p-8 rounded-3xl bg-[#1C1613] border border-[#2A221E] space-y-6 shadow-xl">

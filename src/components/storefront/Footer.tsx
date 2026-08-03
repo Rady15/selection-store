@@ -103,10 +103,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </div>
             <div>
               <h5 className="font-bold text-sm text-[#F8F5F0]">
-                {t('دفع آمن ومدى و Apple Pay', '100% Secure Payment')}
+                {t('دفع آمن عبر مدى وفيزا وماستركارد و Apple Pay', 'Secure Payment')}
               </h5>
               <p className="text-xs text-[#A69B93] mt-0.5">
-                {t('خيارات تابي وتمارا وتقسيط بدون فوائد', 'Tabby & Tamara split payments')}
+                {t('معاملات مشفّرة بمعايير PCI-DSS العالمية', 'Encrypted, PCI-DSS compliant transactions')}
               </p>
             </div>
           </div>
@@ -125,7 +125,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
 
           <p className="text-xs text-[#D4C3B5] leading-relaxed max-w-sm">
             {t(
-              'محمصة سيليكشن القهوة المختصة - وجهتك الشغوفة لأجود محاصيل القهوة الفاخرة المجلوبة من أفضل المزارع العالمية والمحمصة بأعلى معايير الحرفية والاتقان.',
+              'محمصة سليكشن القهوة المختصة - وجهتك الشغوفة لأجود محاصيل القهوة الفاخرة المجلوبة من أفضل المزارع العالمية والمحمصة بأعلى معايير الحرفية والاتقان.',
               'Selection Specialty Coffee Roasters - Your passionate destination for world-class single-origin coffee crops crafted with meticulous precision.'
             )}
           </p>
@@ -176,7 +176,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </li>
             <li>
               <button onClick={() => onNavigate('/products?category=tasting-boxes')} className="hover:text-[#D99B26] transition cursor-pointer">
-                {t('صناديق ومجموعات التذوق', 'Tasting Boxes & Sets')}
+                {t('بوكسات ومجموعات التذوق', 'Tasting Boxes & Sets')}
               </button>
             </li>
             <li>
@@ -215,12 +215,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Col 4: Corporate & Info */}
         <div className="space-y-3">
           <h6 className="font-bold text-sm text-[#F8F5F0] border-b border-[#2A221E] pb-2">
-            {t('عن سيليكشن والخدمات', 'Company & Services')}
+            {t('عن سليكشن والخدمات', 'Company & Services')}
           </h6>
           <ul className="space-y-2 text-xs text-[#A69B93]">
             <li>
               <button onClick={() => onNavigate('/about')} className="hover:text-[#D99B26] transition cursor-pointer">
-                {t('عن محمصة سيليكشن القهوة', 'About Selection Roasters')}
+                {t('عن محمصة سليكشن القهوة', 'About Selection Roasters')}
               </button>
             </li>
             <li>
@@ -296,17 +296,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       {/* Bottom Rights & Payment Badges */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 border-t border-[#2A221E] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#A69B93]">
         <p>
-          © {new Date().getFullYear()} {t('جميع الحقوق محفوظة لمحمصة سيليكشن القهوة المختصة', 'All rights reserved to Selection Specialty Coffee Roasters')}.
+          © {new Date().getFullYear()} {t('جميع الحقوق محفوظة لمحمصة سليكشن القهوة المختصة', 'All rights reserved to Selection Specialty Coffee Roasters')}.
         </p>
 
         {/* Payment Icons */}
         <div className="flex items-center gap-2 flex-wrap justify-center">
           {[
-            { src: 'https://upload.wikimedia.org/wikipedia/commons/f/fb/Mada_Logo.svg', fallback: 'MADA', alt: 'MADA' },
-            { src: 'https://upload.wikimedia.org/wikipedia/commons/b/b0/Apple_Pay_logo.svg', fallback: 'Apple Pay', alt: 'Apple Pay' },
-            { src: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Visa_Inc._logo_%282021%E2%80%93present%29.svg', fallback: 'VISA', alt: 'VISA' },
-            { src: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/tabby.svg', fallback: 'tabby', alt: 'Tabby' },
-            { src: 'https://cdn.tamara.co/assets/png/tamara-logo-badge-en.png', fallback: 'tamara', alt: 'Tamara' },
+            { src: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/mada.svg', fallback: 'MADA', alt: 'MADA' },
+            { src: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/apple_pay.svg', fallback: 'Apple Pay', alt: 'Apple Pay' },
+            { src: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/visa.svg', fallback: 'VISA', alt: 'VISA' },
+            { src: 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/master.svg', fallback: 'Mastercard', alt: 'Mastercard' },
           ].map(p => (
             <img
               key={p.alt}

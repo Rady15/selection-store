@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoginGate from '../components/storefront/LoginGate';
 import AdminLayout from '../components/admin/AdminLayout';
 import AdminOverviewDashboard from '../components/admin/AdminOverviewDashboard';
 import AdminProductsManager from '../components/admin/AdminProductsManager';
@@ -72,13 +73,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <AdminLayout
-      currentTab={currentTab}
-      onTabChange={handleTabChange}
-      onExitAdmin={() => onNavigate('/')}
-    >
-      {renderTabContent()}
-    </AdminLayout>
+    <LoginGate isAdminOnly onNavigate={onNavigate}>
+      <AdminLayout
+        currentTab={currentTab}
+        onTabChange={handleTabChange}
+        onExitAdmin={() => onNavigate('/')}
+      >
+        {renderTabContent()}
+      </AdminLayout>
+    </LoginGate>
   );
 };
 

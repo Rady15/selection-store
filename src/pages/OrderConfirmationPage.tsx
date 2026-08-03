@@ -35,8 +35,6 @@ const PAYMENT_METHOD_LABELS: Record<string, [string, string]> = {
   mada: ['مدى MADA', 'Mada'],
   visa: ['فيزا / ماستركارد (Stripe)', 'Visa / Mastercard (Stripe)'],
   apple_pay: ['Apple Pay (Stripe)', 'Apple Pay (Stripe)'],
-  tabby: ['تابي', 'Tabby'],
-  tamara: ['تمارا', 'Tamara'],
   cod: ['الدفع عند الاستلام', 'Cash on Delivery']
 };
 

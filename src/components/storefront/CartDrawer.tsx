@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { useUI } from '../../context/UIContext';
 import { grindLabels } from '../../utils/coffee';
 import {
   X,
@@ -26,6 +27,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
   const { language, t } = useLanguage();
   const { formatPrice } = useCurrency();
   const { user } = useAuth();
+  const { openAuth } = useUI();
   const {
     items,
     updateQuantity,
@@ -233,7 +235,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                       </button>
                     </div>
                     <span className="text-sm font-bold text-[#D99B26]">
-                      {formatPrice(item.total_price)}
+                      {formatPrice(item.unit_price * item.quantity)}
                     </span>
                   </div>
                 </div>
@@ -286,7 +288,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
                   {t('استبدال نقاط الولاء', 'Redeem loyalty points')} ({user.loyalty_points})
                 </span>
                 <button
-                  onClick={() => setLoyaltyPointsToRedeem(loyaltyPointsToRedeem > 0 ? 0 : Math.min(user.loyalty_points, Math.floor(subtotal / 10)))}
+                  onClick={() => setLoyaltyPointsToRedeem(loyaltyPointsToRedeem > 0 ? 0 : Math.min(user.loyalty_points, Math.floor(subtotal * 20)))}
                   className={`font-bold transition cursor-pointer ${loyaltyPointsToRedeem > 0 ? 'text-emerald-400' : ''}`}
                 >
                   {loyaltyPointsToRedeem > 0 ? t('تم', 'Applied') : t('استبدال', 'Redeem')}
@@ -333,6 +335,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onNavigate }) => {
             <button
               onClick={() => {
                 closeCart();
+                if (!user) {
+                  openAuth({
+                    message: t('سجّل الدخول لإتمام الطلب ومتابعة الشراء', 'Login to proceed to checkout and complete your order')
+                  });
+                  return;
+                }
                 onNavigate('/checkout');
               }}
               className="w-full bg-[#8C532B] hover:bg-[#A86434] text-white py-3 rounded-xl text-sm font-bold transition shadow-lg shadow-[#8C532B]/30 cursor-pointer"

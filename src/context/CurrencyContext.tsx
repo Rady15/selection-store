@@ -39,8 +39,13 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const config = currencies[currency] || currencies.SAR;
 
+  const safeAmount = (amountInSAR: number): number => {
+    const n = Number(amountInSAR);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+
     const formatPrice = (amountInSAR: number): React.ReactNode => {
-      const converted = amountInSAR * config.rateFromSAR;
+      const converted = safeAmount(amountInSAR) * config.rateFromSAR;
       const formatted = converted.toFixed(currency === 'KWD' || currency === 'BHD' || currency === 'OMR' ? 3 : 2);
 
       if (language === 'ar' && currency === 'SAR') {
@@ -52,7 +57,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     const formatPriceString = (amountInSAR: number): string => {
-      const converted = amountInSAR * config.rateFromSAR;
+      const converted = safeAmount(amountInSAR) * config.rateFromSAR;
       const formatted = converted.toFixed(currency === 'KWD' || currency === 'BHD' || currency === 'OMR' ? 3 : 2);
       const symbol = language === 'ar' ? config.symbol_ar : config.symbol_en;
       return `${formatted} ${symbol}`;

@@ -18,14 +18,14 @@ and how to turn on real Stripe payments.
 No Stripe keys set? The store runs in SANDBOX mode:
   - Checkout shows a "إتمام الدفع (محاكاة)" (simulated pay) button
   - No real charge is made
-  - Visa/Apple Pay work; Mada/Tabby/Tamara keep the old "paid" flow;
-    COD stays "pending"
+  - Visa/Apple Pay work through Stripe; COD stays "pending"
 
 ------------------------------------------------------------
 2) ENABLE REAL STRIPE PAYMENTS
 ------------------------------------------------------------
 Stripe supports Visa / Mastercard / Apple Pay in Saudi Arabia.
-(Mada / Tabby / Tamara are NOT supported by Stripe in KSA.)
+(Mada / COD are handled outside Stripe: Mada keeps the "paid" flow;
+COD keeps the "pending" flow.)
 
 A) Get keys from https://dashboard.stripe.com/apikeys
    - STRIPE_SECRET_KEY        -> sk_test_... or sk_live_...

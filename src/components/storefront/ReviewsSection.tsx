@@ -38,7 +38,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ productId }) => 
         body: JSON.stringify({
           product_id: productId,
           user_id: user?.id,
-          customer_name: customerName || 'عميل سيليكشن',
+          customer_name: customerName || 'عميل سليكشن',
           rating,
           title,
           comment,
@@ -128,7 +128,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ productId }) => 
               {/* Staff Reply */}
               {rev.staff_reply_ar && (
                 <div className="mt-3 p-3 rounded-xl bg-[#110E0C] border-s-2 border-[#D99B26] text-xs space-y-1">
-                  <span className="font-bold text-[#D99B26]">{t('رد إدارة محمصة سيليكشن:', 'Roasters Staff Reply:')}</span>
+                  <span className="font-bold text-[#D99B26]">{t('رد إدارة محمصة سليكشن:', 'Roasters Staff Reply:')}</span>
                   <p className="text-[#A69B93]">{language === 'ar' ? rev.staff_reply_ar : rev.staff_reply_en}</p>
                 </div>
               )}
