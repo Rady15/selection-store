@@ -977,7 +977,13 @@ const initialAnnouncementBar: AnnouncementBarConfig = {
   link: '/products',
   bg_color: '#1C1613',
   text_color: '#D99B26',
-  free_shipping_threshold: 199
+  free_shipping_threshold: 199,
+  cta_text_ar: 'تسوق الآن',
+  cta_text_en: 'Shop Now',
+  bg_image: '',
+  overlay: false,
+  show_button: true,
+  show_frame: true
 };
 
 const initialStoreSettings: StoreSettings = {

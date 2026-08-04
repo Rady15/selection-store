@@ -18,7 +18,9 @@ import {
   X,
   ChevronDown,
   ShieldCheck,
-  Truck
+  Truck,
+  Bean,
+  ArrowLeft
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -31,8 +33,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, currentPath = '/', onOpenAuth }) => {
   const { language, setLanguage, t } = useLanguage();
-  const { currency, setCurrency } = useCurrency();
-  const { totalItemCount, openCart, amountNeededForFreeShipping, isFreeShippingEligible } = useCart();
+  const { currency, setCurrency, formatPriceString } = useCurrency();
+  const { totalItemCount, openCart, subtotal } = useCart();
   const { wishlistCount } = useWishlist();
   const { user, isAdmin } = useAuth();
 
@@ -42,6 +44,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const announcementText = announcement ? (language === 'ar' ? announcement.text_ar : announcement.text_en) : '';
+  const freeShipThreshold = announcement?.free_shipping_threshold || 0;
+  const freeShipRemaining = Math.max(0, freeShipThreshold - subtotal);
+  const freeShipEligible = freeShipThreshold > 0 && freeShipRemaining <= 0;
 
   useEffect(() => {
     fetch('/api/admin/announcement')
@@ -56,35 +63,92 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const renderAnnouncementContent = () => (
+    <>
+      <button
+        onClick={() => setShowAnnouncement(false)}
+        className="absolute top-1.5 left-1.5 z-10 opacity-60 hover:opacity-100 p-1 cursor-pointer transition"
+        aria-label="Dismiss"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+
+      <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 pr-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <Bean className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-80" />
+            <p className="font-amiri text-sm sm:text-lg leading-snug font-bold truncate">
+              {announcementText}
+            </p>
+          </div>
+
+          {announcement.link && announcement.show_button !== false && (
+            <button
+              onClick={() => onNavigate(announcement.link!)}
+              className="shrink-0 hidden sm:flex items-center gap-1.5 rounded-full bg-gradient-to-l from-[#D99B26] to-[#8C532B] text-[#110E0C] px-4 sm:px-5 py-2 text-xs sm:text-sm font-extrabold cursor-pointer hover:brightness-110 transition shadow-[0_6px_20px_-6px_rgba(217,155,38,0.65)]"
+            >
+              <span>
+                {language === 'ar' && announcement.cta_text_ar
+                  ? announcement.cta_text_ar
+                  : language === 'en' && announcement.cta_text_en
+                    ? announcement.cta_text_en
+                    : t('تسوق الآن', 'Shop Now')}
+              </span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {freeShipThreshold > 0 && (
+            <div className="flex items-center gap-1.5 rounded-full bg-black/15 px-2.5 py-1 text-[10px] sm:text-xs font-bold opacity-90">
+              <Truck className="w-3 h-3" />
+              {freeShipEligible
+                ? t('شحن مجاني ✓', 'Free shipping ✓')
+                : t('متبقي ' + formatPriceString(freeShipRemaining) + ' للشحن المجاني', formatPriceString(freeShipRemaining) + ' to free shipping')}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <header className="sticky top-0 z-40 bg-[#110E0C] text-[#F8F5F0] border-b border-[#2A221E] transition-all max-w-full overflow-x-clip">
-      {/* Announcement Bar */}
+      {/* Announcement — Featured Offer Card */}
       {showAnnouncement && announcement && announcement.is_enabled && (
-        <div
-          style={{ backgroundColor: announcement.bg_color, color: announcement.text_color }}
-          className="text-[11px] sm:text-xs py-1.5 sm:py-2 px-2 sm:px-4 flex items-center justify-between text-center border-b border-[#2A221E]/30 font-medium max-w-full overflow-hidden"
-        >
-          <div className="w-4 sm:w-6 shrink-0"></div>
-          <div className="flex items-center gap-1.5 sm:gap-2 justify-center flex-wrap leading-tight py-0.5 max-w-[85%]">
-            <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-bounce shrink-0" />
-            <span className="line-clamp-1">{language === 'ar' ? announcement.text_ar : announcement.text_en}</span>
-            {announcement.link && (
-              <button
-                onClick={() => onNavigate(announcement.link!)}
-                className="underline hover:opacity-80 font-bold ml-1 cursor-pointer shrink-0"
-              >
-                {t('عرض المزيد', 'View Offer')}
-              </button>
-            )}
-          </div>
-          <button
-            onClick={() => setShowAnnouncement(false)}
-            className="text-current opacity-70 hover:opacity-100 p-1 cursor-pointer shrink-0"
-            aria-label="Dismiss"
+        announcement.show_frame === false ? (
+          /* Full-bleed: no card box / no frame */
+          <div
+            className="offer-enter relative overflow-hidden"
+            style={{ backgroundColor: announcement.bg_color, color: announcement.text_color }}
           >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+            {announcement.bg_image && (
+              <img src={announcement.bg_image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            )}
+            {announcement.overlay && <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/75" />}
+            <div className="relative max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+              {renderAnnouncementContent()}
+            </div>
+          </div>
+        ) : (
+          /* Gold-framed card */
+          <div className="offer-enter relative max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pt-1.5 sm:pt-2">
+            <div className="relative rounded-2xl bg-gradient-to-l from-[#D99B26]/60 via-[#8C532B]/25 to-[#D99B26]/60 p-px shadow-[0_12px_45px_-14px_rgba(217,155,38,0.45)]">
+              <div
+                className="relative rounded-[calc(1rem-1px)] overflow-hidden"
+                style={{ backgroundColor: announcement.bg_color, color: announcement.text_color }}
+              >
+                {announcement.bg_image && (
+                  <img src={announcement.bg_image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                {announcement.overlay && <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/75" />}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/30 pointer-events-none" />
+                <div className="relative">{renderAnnouncementContent()}</div>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       {/* Main Top Header Bar */}

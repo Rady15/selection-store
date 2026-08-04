@@ -288,6 +288,12 @@ export interface AnnouncementBarConfig {
   bg_color: string;
   text_color: string;
   free_shipping_threshold: number; // e.g. 199
+  cta_text_ar?: string;
+  cta_text_en?: string;
+  bg_image?: string; // background image URL (uploads/...)
+  overlay?: boolean; // dark overlay over the background
+  show_button?: boolean; // false hides the CTA button
+  show_frame?: boolean; // false removes the gold frame / card box
 }
 
 export interface StoreSettings {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
-import { Megaphone, Eye, Loader2, Save } from 'lucide-react';
+import { Megaphone, Eye, Loader2, Save, Truck, ArrowLeft } from 'lucide-react';
+import ImageUploader from './ImageUploader';
 
 interface Announcement {
   is_enabled: boolean;
@@ -10,6 +11,12 @@ interface Announcement {
   bg_color: string;
   text_color: string;
   free_shipping_threshold: number;
+  cta_text_ar: string;
+  cta_text_en: string;
+  bg_image: string;
+  overlay: boolean;
+  show_button: boolean;
+  show_frame: boolean;
 }
 
 const defaultAnnouncement: Announcement = {
@@ -17,10 +24,30 @@ const defaultAnnouncement: Announcement = {
   text_ar: '',
   text_en: '',
   link: '',
-  bg_color: '#D99B26',
-  text_color: '#110E0C',
+  bg_color: '#1C1613',
+  text_color: '#D99B26',
   free_shipping_threshold: 0,
+  cta_text_ar: '',
+  cta_text_en: '',
+  bg_image: '',
+  overlay: false,
+  show_button: true,
+  show_frame: true,
 };
+
+const LINK_OPTIONS: { value: string; label_ar: string; label_en: string }[] = [
+  { value: '', label_ar: 'بدون رابط', label_en: 'No link' },
+  { value: '/products', label_ar: 'المتجر (جميع المنتجات)', label_en: 'Store (all products)' },
+  { value: '/', label_ar: 'الرئيسية', label_en: 'Home' },
+  { value: '/about', label_ar: 'قصتنا', label_en: 'Our Story' },
+  { value: '/subscriptions', label_ar: 'الاشتراكات', label_en: 'Subscriptions' },
+  { value: '/coffee-finder', label_ar: 'مكتشف القهوة', label_en: 'Coffee Finder' },
+  { value: '/brewing-guide', label_ar: 'دليل التحضير', label_en: 'Brewing Guide' },
+  { value: '/wholesale', label_ar: 'بيع بالجملة', label_en: 'Wholesale' },
+  { value: '/locations', label_ar: 'فروعنا', label_en: 'Locations' },
+  { value: '/contact', label_ar: 'تواصل معنا', label_en: 'Contact Us' },
+  { value: '/faq', label_ar: 'الأسئلة الشائعة', label_en: 'FAQ' },
+];
 
 export const AdminAnnouncementManager: React.FC = () => {
   const { language, t } = useLanguage();
@@ -73,6 +100,30 @@ export const AdminAnnouncementManager: React.FC = () => {
   };
 
   const previewText = language === 'ar' ? announcement.text_ar : announcement.text_en;
+
+  const renderPreviewContent = () => (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-amiri text-sm font-bold leading-snug">
+          {previewText || t('معاينة النص هنا', 'Preview text here')}
+        </p>
+        {announcement.link && announcement.show_button && (
+          <span className="hidden sm:flex items-center gap-1 rounded-full bg-gradient-to-l from-[#D99B26] to-[#8C532B] text-[#110E0C] px-3 py-1 text-[10px] font-extrabold shrink-0">
+            {announcement.cta_text_ar || announcement.cta_text_en || t('تسوق الآن', 'Shop Now')}
+            <ArrowLeft className="w-3 h-3" />
+          </span>
+        )}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {announcement.free_shipping_threshold > 0 && (
+          <span className="flex items-center gap-1 rounded-full bg-black/15 px-2 py-0.5 text-[9px] font-bold">
+            <Truck className="w-2.5 h-2.5" />
+            {t('متبقي ' + announcement.free_shipping_threshold + ' ﷼ للشحن المجاني', 'Free shipping unlocked')}
+          </span>
+        )}
+      </div>
+    </>
+  );
 
   if (loading) {
     return (
@@ -136,9 +187,17 @@ export const AdminAnnouncementManager: React.FC = () => {
 
           <div>
             <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('الرابط', 'Link')}</label>
-            <input type="url" value={announcement.link} onChange={e => updateField('link', e.target.value)}
-              placeholder="/collections"
-              className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white" />
+            <select
+              value={LINK_OPTIONS.some(o => o.value === announcement.link) ? announcement.link : ''}
+              onChange={e => updateField('link', e.target.value)}
+              className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white cursor-pointer"
+            >
+              {LINK_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {language === 'ar' ? opt.label_ar : opt.label_en}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -171,6 +230,71 @@ export const AdminAnnouncementManager: React.FC = () => {
               className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white" />
           </div>
 
+          <div className="pt-1 border-t border-[#2A221E]/60">
+            <p className="text-[11px] font-bold text-[#D99B26] mb-3">{t('خيارات العرض المميز (اختياري)', 'Featured Offer Options (optional)')}</p>
+          </div>
+
+          <div>
+            <label className="block text-[#D4C3B5] mb-1 font-semibold">
+              {t('صورة الخلفية (اختياري)', 'Background Image (optional)')}
+            </label>
+            <ImageUploader value={announcement.bg_image} onChange={url => updateField('bg_image', url)} />
+            <p className="text-[10px] text-[#D99B26] mt-1">
+              {t('الأبعاد الموصى بها: 1600 × 400 بكسل (شريط عريض) — سيتم تعبئة الإطار تلقائياً.', 'Recommended size: 1600 × 400 px (wide banner) — it fills the bar automatically.')}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('أوفرلاي داكن', 'Dark Overlay')}</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={announcement.overlay}
+                  onChange={e => updateField('overlay', e.target.checked)} className="sr-only peer" />
+                <div className="w-10 h-5.5 bg-[#2A221E] rounded-full peer peer-checked:bg-[#8C532B] peer-focus:ring-2 peer-focus:ring-[#D99B26]/30 after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:-translate-x-full" />
+                <span className="mr-2 text-xs font-bold text-[#D4C3B5]">
+                  {announcement.overlay ? t('عليه', 'On') : t('بدون', 'Off')}
+                </span>
+              </label>
+            </div>
+            <div>
+              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('إظهار الزر', 'Show Button')}</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={announcement.show_button}
+                  onChange={e => updateField('show_button', e.target.checked)} className="sr-only peer" />
+                <div className="w-10 h-5.5 bg-[#2A221E] rounded-full peer peer-checked:bg-[#8C532B] peer-focus:ring-2 peer-focus:ring-[#D99B26]/30 after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:-translate-x-full" />
+                <span className="mr-2 text-xs font-bold text-[#D4C3B5]">
+                  {announcement.show_button ? t('ظاهر', 'On') : t('مخفي', 'Off')}
+                </span>
+              </label>
+            </div>
+            <div>
+              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('الإطار الذهبي', 'Gold Frame')}</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={announcement.show_frame}
+                  onChange={e => updateField('show_frame', e.target.checked)} className="sr-only peer" />
+                <div className="w-10 h-5.5 bg-[#2A221E] rounded-full peer peer-checked:bg-[#8C532B] peer-focus:ring-2 peer-focus:ring-[#D99B26]/30 after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:-translate-x-full" />
+                <span className="mr-2 text-xs font-bold text-[#D4C3B5]">
+                  {announcement.show_frame ? t('عليه', 'On') : t('بدون', 'Off')}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('نص الزر عربي', 'CTA Text (AR)')}</label>
+              <input type="text" value={announcement.cta_text_ar} onChange={e => updateField('cta_text_ar', e.target.value)}
+                placeholder="تسوق الآن"
+                className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white" />
+            </div>
+            <div>
+              <label className="block text-[#D4C3B5] mb-1 font-semibold">{t('نص الزر إنجليزي', 'CTA Text (EN)')}</label>
+              <input type="text" value={announcement.cta_text_en} onChange={e => updateField('cta_text_en', e.target.value)}
+                placeholder="Shop Now"
+                className="w-full bg-[#110E0C] border border-[#2A221E] rounded-xl p-2.5 text-white" />
+            </div>
+          </div>
+
           <button type="submit" disabled={saving}
             className="w-full bg-[#8C532B] hover:bg-[#A86434] text-white py-3 rounded-xl font-bold cursor-pointer transition flex items-center justify-center gap-2 disabled:opacity-50">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? null : <Save className="w-4 h-4" />}
@@ -186,11 +310,25 @@ export const AdminAnnouncementManager: React.FC = () => {
               {t('معاينة', 'Preview')}
             </h3>
 
-            <div className="rounded-xl overflow-hidden" style={{ backgroundColor: announcement.bg_color }}>
-              <div className="px-4 py-2.5 text-center text-xs font-bold" style={{ color: announcement.text_color }}>
-                {previewText || t('معاينة النص هنا', 'Preview text here')}
+            {announcement.show_frame === false ? (
+              <div className="relative rounded-xl overflow-hidden" style={{ backgroundColor: announcement.bg_color, color: announcement.text_color }}>
+                {announcement.bg_image && (
+                  <img src={announcement.bg_image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                {announcement.overlay && <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/75" />}
+                <div className="relative px-4 py-3">{renderPreviewContent()}</div>
               </div>
-            </div>
+            ) : (
+              <div className="rounded-2xl bg-gradient-to-l from-[#D99B26]/60 via-[#8C532B]/25 to-[#D99B26]/60 p-px">
+                <div className="relative rounded-[calc(1rem-1px)] overflow-hidden" style={{ backgroundColor: announcement.bg_color, color: announcement.text_color }}>
+                  {announcement.bg_image && (
+                    <img src={announcement.bg_image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  )}
+                  {announcement.overlay && <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/75" />}
+                  <div className="relative px-4 py-3">{renderPreviewContent()}</div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 space-y-2 text-xs text-[#A69B93]">
               <div className="flex justify-between">
@@ -207,6 +345,28 @@ export const AdminAnnouncementManager: React.FC = () => {
                 <span>{t('الحد الأدنى للشحن المجاني', 'Free Shipping Threshold')}</span>
                 <span className="text-white">{announcement.free_shipping_threshold} {t('﷼', 'SAR')}</span>
               </div>
+              <div className="flex justify-between">
+                <span>{t('صورة الخلفية', 'Background Image')}</span>
+                <span className="text-white font-mono truncate max-w-[60%]">{announcement.bg_image || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>{t('أوفرلاي داكن', 'Dark Overlay')}</span>
+                <span className={announcement.overlay ? 'text-emerald-400' : 'text-white/60'}>
+                  {announcement.overlay ? t('عليه', 'On') : t('بدون', 'Off')}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>{t('إظهار الزر', 'Show Button')}</span>
+                <span className={announcement.show_button ? 'text-emerald-400' : 'text-white/60'}>
+                  {announcement.show_button ? t('ظاهر', 'On') : t('مخفي', 'Off')}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>{t('الإطار الذهبي', 'Gold Frame')}</span>
+                <span className={announcement.show_frame ? 'text-emerald-400' : 'text-white/60'}>
+                  {announcement.show_frame ? t('عليه', 'On') : t('بدون', 'Off')}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -216,11 +376,38 @@ export const AdminAnnouncementManager: React.FC = () => {
               {t('معاينة الموقع الكامل', 'Full Site Preview')}
             </h3>
             <div className="rounded-xl overflow-hidden border border-[#2A221E]">
-              <div className="rounded-xl overflow-hidden" style={{ backgroundColor: announcement.bg_color }}>
-                <div className="px-4 py-2 text-center text-[10px] font-bold" style={{ color: announcement.text_color }}>
-                  {previewText || t('معاينة النص هنا', 'Preview text here')}
+              {announcement.show_frame === false ? (
+                <div className="relative px-3 py-2 overflow-hidden" style={{ backgroundColor: announcement.bg_color }}>
+                  {announcement.bg_image && (
+                    <img src={announcement.bg_image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  )}
+                  {announcement.overlay && <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/75" />}
+                  <div className="relative flex items-center justify-between gap-2" style={{ color: announcement.text_color }}>
+                    <p className="font-amiri text-[11px] font-bold leading-snug truncate">
+                      {previewText || t('معاينة النص هنا', 'Preview text here')}
+                    </p>
+                    {announcement.coupon_code && (
+                      <span className="shrink-0 rounded-full border border-dashed border-white/30 bg-black/15 px-1.5 py-0.5 text-[8px] font-extrabold tracking-widest">
+                        {announcement.coupon_code}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-lg bg-gradient-to-l from-[#D99B26]/50 via-[#8C532B]/20 to-[#D99B26]/50 p-px m-1">
+                  <div className="relative rounded-[calc(0.5rem-1px)] px-3 py-2 overflow-hidden" style={{ backgroundColor: announcement.bg_color }}>
+                    {announcement.bg_image && (
+                      <img src={announcement.bg_image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    )}
+                    {announcement.overlay && <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/55 to-black/75" />}
+                    <div className="relative flex items-center justify-between gap-2" style={{ color: announcement.text_color }}>
+                      <p className="font-amiri text-[11px] font-bold leading-snug truncate">
+                        {previewText || t('معاينة النص هنا', 'Preview text here')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="h-6 bg-[#2A221E] flex items-center justify-center">
                 <div className="w-8 h-1 bg-[#A69B93]/30 rounded" />
               </div>
