@@ -106,16 +106,18 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
  <style>
  @page { size: A4; margin: 12mm; }
  * { box-sizing: border-box; }
- body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #F0FAFA; margin: 0; padding: 26px; font-size: 13px; background: #fff; }
+ body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; color: #1A2E30; margin: 0; padding: 26px; font-size: 13px; background: #fff; }
  .invoice { max-width: 780px; margin: 0 auto; }
  .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 2px solid #0E5257; padding-bottom: 14px; }
+ .brand { display: flex; align-items: center; gap: 14px; }
+ .brand img { height: 50px; width: auto; object-fit: contain; }
  .brand h1 { font-size: 21px; margin: 0 0 2px; color: #0E5257; }
  .brand .store { font-size: 11.5px; color: #496A6D; }
  .brand .contact { font-size: 10.5px; color: #6F8C8E; margin-top: 6px; line-height: 1.6; }
  .doctype { text-align: center; }
  .doctype .badge { display: inline-block; background: #0E5257; color: #fff; font-weight: 800; padding: 7px 20px; border-radius: 6px; font-size: 15px; letter-spacing: 1px; }
  .doctype .vat-badge { margin-top: 7px; font-size: 11px; color: #496A6D; }
- .doctype .vat-badge strong { color: #F0FAFA; }
+ .doctype .vat-badge strong { color: #1A2E30; }
  .invoice-no { margin-top: 6px; font-size: 12px; }
  .invoice-no strong { font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #0E5257; letter-spacing: 0.5px; }
  .panel { border: 1px solid #1A2E30; border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
@@ -127,7 +129,7 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
  .buyer .line { font-size: 12.5px; margin-bottom: 3px; }
  .buyer .line .k { color: #6F8C8E; }
  table.items { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 12.5px; }
- table.items th { background: #F0FAFA; color: #fff; padding: 8px 10px; font-size: 11.5px; font-weight: 700; text-align: start; }
+ table.items th { background: #0E5257; color: #fff; padding: 8px 10px; font-size: 11.5px; font-weight: 700; text-align: start; }
  table.items td { padding: 8px 10px; border-bottom: 1px solid #E3F0F1; vertical-align: top; }
  table.items tbody tr:nth-child(even) td { background: #F5FBFB; }
  .num { text-align: end; white-space: nowrap; }
@@ -139,9 +141,9 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
  .totals .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12.5px; }
  .totals .row .k { color: #496A6D; }
  .totals .vat-box { background: #EAF4F5; border-radius: 6px; padding: 8px 10px; margin-top: 8px; border-top: 1px dashed #B5CBCC; }
- .totals .vat-box .row .k { color: #F0FAFA; }
- .totals .grand { border-top: 2px solid #F0FAFA; margin-top: 8px; padding-top: 9px; font-size: 16px; font-weight: 800; }
- .totals .grand .k { color: #F0FAFA; }
+ .totals .vat-box .row .k { color: #4A6869; }
+ .totals .grand { border-top: 2px solid #0E5257; margin-top: 8px; padding-top: 9px; font-size: 16px; font-weight: 800; }
+ .totals .grand .k { color: #1A2E30; }
  .totals .grand span:last-child { color: #0E5257; }
  .foot { margin-top: 22px; border-top: 2px solid #0E5257; padding-top: 10px; font-size: 11px; color: #6F8C8E; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
  .foot .note { max-width: 460px; line-height: 1.6; }
@@ -162,11 +164,14 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
  <div class="invoice">
  <div class="header">
  <div class="brand">
+ <img src="/coloredlogo.png" alt="Selection" />
+ <div>
  <h1>${esc(storeName)}</h1>
  <div class="store">${t('قهوة مختصة - تحميص يومي طازج', 'Specialty coffee roasters - fresh daily roast')}</div>
  <div class="contact">
  <div>${esc(address)}</div>
  <div dir="ltr">${esc(settings.support_phone || fallbackSettings.support_phone || '')}${settings.support_email ? ` • ${esc(settings.support_email)}` : ''}</div>
+ </div>
  </div>
  </div>
  <div class="doctype">
