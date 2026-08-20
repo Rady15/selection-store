@@ -6,42 +6,42 @@ import { useEffect, useRef } from 'react';
  * Pass `enabled={false}` to disable the timer (e.g. no logged-in user).
  */
 export function usePolling(callback: () => void, intervalMs: number, enabled = true) {
-  const cbRef = useRef(callback);
-  cbRef.current = callback;
+ const cbRef = useRef(callback);
+ cbRef.current = callback;
 
-  useEffect(() => {
-    if (!enabled) return;
+ useEffect(() => {
+ if (!enabled) return;
 
-    cbRef.current();
+ cbRef.current();
 
-    let timer: ReturnType<typeof setInterval> | null = null;
-    const start = () => {
-      if (timer) return;
-      timer = setInterval(() => {
-        if (!document.hidden) cbRef.current();
-      }, intervalMs);
-    };
-    const stop = () => {
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-    };
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        stop();
-      } else {
-        cbRef.current();
-        start();
-      }
-    };
+ let timer: ReturnType<typeof setInterval> | null = null;
+ const start = () => {
+ if (timer) return;
+ timer = setInterval(() => {
+ if (!document.hidden) cbRef.current();
+ }, intervalMs);
+ };
+ const stop = () => {
+ if (timer) {
+ clearInterval(timer);
+ timer = null;
+ }
+ };
+ const onVisibilityChange = () => {
+ if (document.hidden) {
+ stop();
+ } else {
+ cbRef.current();
+ start();
+ }
+ };
 
-    start();
-    document.addEventListener('visibilitychange', onVisibilityChange);
+ start();
+ document.addEventListener('visibilitychange', onVisibilityChange);
 
-    return () => {
-      stop();
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    };
-  }, [intervalMs, enabled]);
+ return () => {
+ stop();
+ document.removeEventListener('visibilitychange', onVisibilityChange);
+ };
+ }, [intervalMs, enabled]);
 }

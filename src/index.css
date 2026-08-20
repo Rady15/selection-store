@@ -4,46 +4,52 @@
   --font-sans: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
   --font-serif: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
   --color-brand-950: #041214;
-  --color-brand-900: #061719;
-  --color-brand-800: #0A1E20;
-  --color-brand-700: #0B2528;
-  --color-brand-600: #0E5257;
-  --color-brand-500: #2B7D82;
+  --color-brand-900: #0E5257;
+  --color-brand-800: #146B71;
+  --color-brand-700: #1A8289;
+  --color-brand-600: #2B7D82;
+  --color-brand-500: #3A9DA3;
   --color-brand-400: #4FA8AD;
   --color-brand-300: #6CC6C9;
   --color-brand-200: #9DE0E2;
-  --color-brand-100: #DCEDEE;
+  --color-brand-100: #E8F6F7;
+  --color-brand-50: #F4FBFB;
 }
 
 :root {
   --brand-950: #041214;
-  --brand-900: #061719;
-  --brand-800: #0A1E20;
-  --brand-700: #0B2528;
-  --brand-600: #0E5257;
-  --brand-500: #2B7D82;
+  --brand-900: #0E5257;
+  --brand-800: #146B71;
+  --brand-700: #1A8289;
+  --brand-600: #2B7D82;
+  --brand-500: #3A9DA3;
   --brand-400: #4FA8AD;
   --brand-300: #6CC6C9;
   --brand-200: #9DE0E2;
-  --brand-100: #DCEDEE;
-  --brand-text: #F3FBFB;
-  --brand-muted: #8EA8AA;
+  --brand-100: #E8F6F7;
+  --brand-50: #F4FBFB;
+  --brand-text: #1A2E30;
+  --brand-text-secondary: #4A6869;
+  --brand-muted: #6B8C8E;
+  --brand-bg: #F7FCFC;
+  --brand-surface: #FFFFFF;
+  --brand-surface-elevated: #F0FAFA;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
     font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
-    background: var(--brand-950);
+    background: var(--brand-bg);
   }
   body {
     min-height: 100vh;
     font-family: 'IBM Plex Sans Arabic', 'Inter', sans-serif;
     color: var(--brand-text);
     background:
-      radial-gradient(circle at 12% 8%, rgba(108,198,201,.12), transparent 26rem),
-      radial-gradient(circle at 88% 20%, rgba(43,125,130,.13), transparent 30rem),
-      linear-gradient(180deg, var(--brand-900), var(--brand-950));
+      radial-gradient(circle at 12% 8%, rgba(108,198,201,.08), transparent 26rem),
+      radial-gradient(circle at 88% 20%, rgba(43,125,130,.06), transparent 30rem),
+      linear-gradient(180deg, #FFFFFF, var(--brand-bg));
   }
   button, a, input, textarea, select {
     -webkit-tap-highlight-color: transparent;
@@ -69,8 +75,8 @@ html, body, #root {
 }
 
 ::selection {
-  background: rgba(108, 198, 201, .38);
-  color: #fff;
+  background: rgba(43, 125, 130, .25);
+  color: #0E5257;
 }
 
 ::-webkit-scrollbar {
@@ -78,14 +84,14 @@ html, body, #root {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--brand-950);
+  background: var(--brand-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--brand-600), var(--brand-500));
+  background: linear-gradient(180deg, var(--brand-300), var(--brand-400));
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--brand-300);
+  background: var(--brand-500);
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -97,9 +103,9 @@ html, body, #root {
   position: relative;
   isolation: isolate;
   background:
-    radial-gradient(circle at 10% 0%, rgba(108,198,201,.10), transparent 22rem),
-    radial-gradient(circle at 90% 18%, rgba(14,82,87,.18), transparent 28rem),
-    linear-gradient(180deg, #061719 0%, #041214 100%);
+    radial-gradient(circle at 10% 0%, rgba(108,198,201,.06), transparent 22rem),
+    radial-gradient(circle at 90% 18%, rgba(43,125,130,.08), transparent 28rem),
+    linear-gradient(180deg, #FFFFFF 0%, var(--brand-bg) 100%);
 }
 
 .brand-mesh::before {
@@ -108,22 +114,22 @@ html, body, #root {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: .22;
-  background-image: linear-gradient(rgba(157,224,226,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(157,224,226,.04) 1px, transparent 1px);
+  opacity: .12;
+  background-image: linear-gradient(rgba(43,125,130,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(43,125,130,.06) 1px, transparent 1px);
   background-size: 42px 42px;
   mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
 
 .brand-glass {
-  background: rgba(11, 37, 40, .58);
-  border: 1px solid rgba(157, 224, 226, .12);
-  box-shadow: 0 18px 70px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.035);
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(43, 125, 130, .12);
+  box-shadow: 0 8px 32px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.8);
   backdrop-filter: blur(18px) saturate(130%);
   -webkit-backdrop-filter: blur(18px) saturate(130%);
 }
 
 .brand-glow {
-  box-shadow: 0 0 0 1px rgba(108,198,201,.12), 0 16px 50px -18px rgba(108,198,201,.46);
+  box-shadow: 0 0 0 1px rgba(43,125,130,.10), 0 16px 50px -18px rgba(43,125,130,.18);
 }
 
 .brand-shimmer {
@@ -136,7 +142,7 @@ html, body, #root {
   inset: -40% auto -40% -25%;
   width: 22%;
   transform: skewX(-18deg) translateX(-180%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
   animation: brandShimmer 5s ease-in-out infinite;
   pointer-events: none;
 }
@@ -153,8 +159,8 @@ html, body, #root {
 .brand-float { animation: brandFloat 6s ease-in-out infinite; }
 
 @keyframes brandPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(108,198,201,.0); }
-  50% { box-shadow: 0 0 0 12px rgba(108,198,201,.07); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(43,125,130,.0); }
+  50% { box-shadow: 0 0 0 12px rgba(43,125,130,.07); }
 }
 .brand-pulse { animation: brandPulse 2.8s ease-in-out infinite; }
 
@@ -169,7 +175,7 @@ html, body, #root {
   100% { clip-path: inset(0 0 0 0); }
 }
 .animate-cup-fill {
-  color: #F3FBFB;
+  color: #0E5257;
   clip-path: inset(100% 0 0 0);
   animation: cupFill 1s cubic-bezier(.22,1,.36,1) forwards;
   animation-delay: .2s;
