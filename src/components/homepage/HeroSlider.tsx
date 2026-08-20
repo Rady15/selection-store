@@ -43,10 +43,10 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides, onNavigate }) =>
  <img
  src={currentSlide.image_desktop}
  alt={currentSlide.title_ar}
- className="w-full h-full object-cover opacity-40"
+ className="w-full h-full object-cover"
  />
  </picture>
- <div className="absolute inset-0 bg-gradient-to-t from-[#FFFFFF] via-[#FFFFFF]/70 to-[#FFFFFF]/30" />
+ <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/50 via-[#000000]/20 to-transparent" />
  </motion.div>
  </AnimatePresence>
 

@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Coffee, Sparkles } from 'lucide-react';
+import { Coffee } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 interface CoffeeFinderFloatProps {
@@ -32,14 +32,7 @@ export const CoffeeFinderFloat: React.FC<CoffeeFinderFloatProps> = ({ onNavigate
  <Coffee
  className={`w-7 h-7 sm:w-8 sm:h-8 drop-shadow-lg animate-fab-wiggle ${hovered ? 'opacity-0' : 'opacity-100'}`}
  />
- <Sparkles
- className={`absolute w-7 h-7 sm:w-8 sm:h-8 text-yellow-300 drop-shadow-lg transition-all duration-300 ${hovered ? 'opacity-100 scale-100 rotate-12' : 'opacity-0 scale-50'}`}
- />
 
- {/* sparkle badge */}
- <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1A2E30] text-[#0E5257] text-[10px] font-extrabold flex items-center justify-center shadow-lg border border-[#6CC6C9]">
- ✨
- </span>
  </button>
 
  {/* side label pill */}
