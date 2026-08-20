@@ -484,7 +484,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
  <div className="p-5 rounded-2xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-2">
  <div className="flex items-center gap-2">
- <Star className="w-4 h-4 text-[#6CC6C9]" />
+ <Star className="w-4 h-4 text-yellow-500" />
  <span className="text-xs font-bold text-[#1A2E30]">{t('كيف تكسب النقاط', 'How to Earn')}</span>
  </div>
  <p className="text-xs text-[#6B8C8E] leading-relaxed">
@@ -638,7 +638,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
  onClick={() => setReviewDrafts(prev => ({ ...prev, [item.product_id]: { ...draft, rating: s } }))}
  className="cursor-pointer"
  >
- <Star className={`w-6 h-6 ${s <= draft.rating ? 'text-[#6CC6C9] fill-[#6CC6C9]' : 'text-[#E8F2F2]'}`} />
+ <Star className={`w-6 h-6 ${s <= draft.rating ? 'text-yellow-500 fill-yellow-500' : 'text-[#E8F2F2]'}`} />
  </button>
  ))}
  <span className="text-[10px] text-[#6B8C8E] ms-2">{draft.rating}/5</span>
@@ -685,7 +685,7 @@ export const CustomerAccountPage: React.FC<CustomerAccountPageProps> = ({ onNavi
  <div className="flex items-center justify-between">
  <div className="flex items-center gap-1">
  {[1, 2, 3, 4, 5].map(s => (
- <Star key={s} className={`w-4 h-4 ${s <= rev.rating ? 'text-[#6CC6C9] fill-[#6CC6C9]' : 'text-[#E8F2F2]'}`} />
+ <Star key={s} className={`w-4 h-4 ${s <= rev.rating ? 'text-yellow-500 fill-yellow-500' : 'text-[#E8F2F2]'}`} />
  ))}
  </div>
  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rev.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :

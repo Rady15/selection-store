@@ -118,7 +118,7 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
  .doctype .vat-badge strong { color: #F0FAFA; }
  .invoice-no { margin-top: 6px; font-size: 12px; }
  .invoice-no strong { font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #0E5257; letter-spacing: 0.5px; }
- .panel { border: 1px solid #D0DEDF; border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
+ .panel { border: 1px solid #1A2E30; border-radius: 8px; padding: 12px 14px; margin-top: 12px; }
  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; font-size: 12.5px; }
  .meta .k { color: #6F8C8E; }
  .meta .v { font-weight: 700; }

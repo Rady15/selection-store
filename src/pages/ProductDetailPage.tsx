@@ -360,7 +360,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
  )}
  </div>
 
- <div className="flex items-center gap-1.5 text-xs text-[#6CC6C9] font-bold">
+ <div className="flex items-center gap-1.5 text-xs text-yellow-500 font-bold">
  <Star className="w-4 h-4 fill-current" />
  <span>{product.rating}</span>
  <span className="text-[#6B8C8E]">({product.review_count} {t('تقييم', 'reviews')})</span>

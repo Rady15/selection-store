@@ -128,7 +128,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose, o
  <button
  key={kw}
  onClick={() => handleSelectKeyword(kw)}
- className="px-3.5 py-1.5 rounded-xl bg-[#F0FAFA] hover:bg-[#0E5257]/30 border border-[#E8F2F2] hover:border-[#6CC6C9]/50 text-xs font-medium text-[#D0DEDF] hover:text-[#6CC6C9] transition cursor-pointer"
+ className="px-3.5 py-1.5 rounded-xl bg-[#F0FAFA] hover:bg-[#0E5257]/30 border border-[#E8F2F2] hover:border-[#6CC6C9]/50 text-xs font-medium text-[#1A2E30] hover:text-[#6CC6C9] transition cursor-pointer"
  >
  {kw}
  </button>

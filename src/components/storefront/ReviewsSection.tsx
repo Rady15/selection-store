@@ -67,8 +67,8 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ productId }) => 
  <div className="p-6 bg-[#F0FAFA] border border-[#E8F2F2] rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-6">
  <div className="flex items-center gap-4">
  <div className="text-center">
- <span className="font-extrabold text-4xl text-[#6CC6C9]">{avgRating}</span>
- <div className="flex text-[#6CC6C9] justify-center gap-0.5 mt-1">
+ <span className="font-extrabold text-4xl text-yellow-500">{avgRating}</span>
+ <div className="flex text-yellow-500 justify-center gap-0.5 mt-1">
  {[1, 2, 3, 4, 5].map(star => (
  <Star key={star} className={`w-4 h-4 ${star <= Math.round(Number(avgRating)) ? 'fill-current' : 'opacity-30'}`} />
  ))}
@@ -115,7 +115,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ productId }) => 
  )}
  </div>
 
- <div className="flex text-[#6CC6C9]">
+ <div className="flex text-yellow-500">
  {[1, 2, 3, 4, 5].map(s => (
  <Star key={s} className={`w-3.5 h-3.5 ${s <= rev.rating ? 'fill-current' : 'opacity-20'}`} />
  ))}
@@ -148,7 +148,7 @@ export const ReviewsSection: React.FC<ReviewsSectionProps> = ({ productId }) => 
 
  <div className="space-y-2">
  <label className="text-xs font-semibold text-[#4A6869] block">{t('التقييم العام', 'Rating')}</label>
- <div className="flex gap-2 text-[#6CC6C9]">
+ <div className="flex gap-2 text-yellow-500">
  {[1, 2, 3, 4, 5].map(star => (
  <button
  key={star}

@@ -190,7 +190,7 @@ export const AdminQuizManager: React.FC = () => {
  <div className="flex items-center gap-3">
  <button
  onClick={() => window.open('/coffee-finder', '_blank')}
- className="bg-[#E8F2F2] hover:bg-[#D0DEDF] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-[#D0DEDF]"
+ className="bg-[#E8F2F2] hover:bg-[#1A2E30] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-[#1A2E30]"
  >
  <Eye className="w-3.5 h-3.5" />
  {t('معاينة', 'Preview')}

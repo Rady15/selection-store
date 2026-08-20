@@ -168,7 +168,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate, o
 
  {/* Rating & Stock */}
  <div className="flex items-center justify-between text-xs text-[#6B8C8E]">
- <div className="flex items-center gap-1 text-[#6CC6C9] font-bold">
+ <div className="flex items-center gap-1 text-yellow-500 font-bold">
  <Star className="w-3.5 h-3.5 fill-current" />
  <span>{product.rating}</span>
  <span className="text-[10px] text-[#6B8C8E]">({product.review_count})</span>

@@ -271,7 +271,7 @@ export const AdminBannersManager: React.FC = () => {
  type="text"
  value={titleAr}
  onChange={e => setTitleAr(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  required
  dir="rtl"
  />
@@ -282,7 +282,7 @@ export const AdminBannersManager: React.FC = () => {
  type="text"
  value={titleEn}
  onChange={e => setTitleEn(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  required
  />
  </div>
@@ -295,7 +295,7 @@ export const AdminBannersManager: React.FC = () => {
  type="text"
  value={subtitleAr}
  onChange={e => setSubtitleAr(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  dir="rtl"
  />
  </div>
@@ -305,7 +305,7 @@ export const AdminBannersManager: React.FC = () => {
  type="text"
  value={subtitleEn}
  onChange={e => setSubtitleEn(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  />
  </div>
  </div>
@@ -318,7 +318,7 @@ export const AdminBannersManager: React.FC = () => {
  type="text"
  value={linkUrl}
  onChange={e => setLinkUrl(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  placeholder="/products"
  />
  </div>
@@ -329,7 +329,7 @@ export const AdminBannersManager: React.FC = () => {
  <select
  value={position}
  onChange={e => setPosition(e.target.value as Banner['position'])}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9] cursor-pointer"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9] cursor-pointer"
  >
  <option value="hero">{t('هيرو', 'Hero')}</option>
  <option value="mid_page">{t('منتصف الصفحة', 'Mid Page')}</option>
@@ -343,7 +343,7 @@ export const AdminBannersManager: React.FC = () => {
  type="number"
  value={sortOrder}
  onChange={e => setSortOrder(Number(e.target.value))}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  min={0}
  />
  </div>
@@ -367,7 +367,7 @@ export const AdminBannersManager: React.FC = () => {
  type="date"
  value={startDate}
  onChange={e => setStartDate(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  />
  </div>
  <div>
@@ -376,7 +376,7 @@ export const AdminBannersManager: React.FC = () => {
  type="date"
  value={endDate}
  onChange={e => setEndDate(e.target.value)}
- className="w-full bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
+ className="w-full bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9]"
  />
  </div>
  </div>
@@ -392,13 +392,13 @@ export const AdminBannersManager: React.FC = () => {
  type="color"
  value={bgColor}
  onChange={e => setBgColor(e.target.value)}
- className="w-10 h-10 rounded-lg border border-[#D0DEDF] cursor-pointer bg-transparent"
+ className="w-10 h-10 rounded-lg border border-[#1A2E30] cursor-pointer bg-transparent"
  />
  <input
  type="text"
  value={bgColor}
  onChange={e => setBgColor(e.target.value)}
- className="flex-1 bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9] font-mono"
+ className="flex-1 bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9] font-mono"
  />
  </div>
  </div>
@@ -412,19 +412,19 @@ export const AdminBannersManager: React.FC = () => {
  type="color"
  value={textColor}
  onChange={e => setTextColor(e.target.value)}
- className="w-10 h-10 rounded-lg border border-[#D0DEDF] cursor-pointer bg-transparent"
+ className="w-10 h-10 rounded-lg border border-[#1A2E30] cursor-pointer bg-transparent"
  />
  <input
  type="text"
  value={textColor}
  onChange={e => setTextColor(e.target.value)}
- className="flex-1 bg-[#E8F2F2] border border-[#D0DEDF] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9] font-mono"
+ className="flex-1 bg-[#E8F2F2] border border-[#1A2E30] rounded-xl px-3 py-2 text-sm text-[#E8F2F2] focus:outline-none focus:border-[#6CC6C9] font-mono"
  />
  </div>
  </div>
  </div>
 
- <div className="rounded-xl border border-[#D0DEDF] p-4" style={{ backgroundColor: bgColor }}>
+ <div className="rounded-xl border border-[#1A2E30] p-4" style={{ backgroundColor: bgColor }}>
  <p className="text-center font-bold font-serif" style={{ color: textColor }}>
  {titleEn || titleAr || t('معاينة العنوان', 'Title Preview')}
  </p>
@@ -443,7 +443,7 @@ export const AdminBannersManager: React.FC = () => {
  <button
  type="button"
  onClick={() => { setShowModal(false); resetForm(); }}
- className="px-6 py-2.5 bg-[#E8F2F2] hover:bg-[#D0DEDF] text-[#86A2A4] rounded-xl font-medium text-sm transition cursor-pointer"
+ className="px-6 py-2.5 bg-[#E8F2F2] hover:bg-[#1A2E30] text-[#86A2A4] rounded-xl font-medium text-sm transition cursor-pointer"
  >
  {t('إلغاء', 'Cancel')}
  </button>

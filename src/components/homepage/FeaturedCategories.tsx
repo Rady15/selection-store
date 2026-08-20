@@ -63,13 +63,13 @@ export const FeaturedCategories: React.FC<FeaturedCategoriesProps> = ({ onNaviga
  <div className="flex items-center gap-1.5 bg-[#F0FAFA] p-1 rounded-2xl border border-[#E8F2F2]">
  <button
  onClick={() => handleScroll('left')}
- className="w-9 h-9 rounded-xl bg-[#FFFFFF] border border-[#E8F2F2] hover:border-[#6CC6C9] text-[#D0DEDF] hover:text-[#6CC6C9] transition flex items-center justify-center cursor-pointer shadow-md active:scale-95"
+ className="w-9 h-9 rounded-xl bg-[#FFFFFF] border border-[#E8F2F2] hover:border-[#6CC6C9] text-[#1A2E30] hover:text-[#6CC6C9] transition flex items-center justify-center cursor-pointer shadow-md active:scale-95"
  >
  <ChevronRight className="w-5 h-5" />
  </button>
  <button
  onClick={() => handleScroll('right')}
- className="w-9 h-9 rounded-xl bg-[#FFFFFF] border border-[#E8F2F2] hover:border-[#6CC6C9] text-[#D0DEDF] hover:text-[#6CC6C9] transition flex items-center justify-center cursor-pointer shadow-md active:scale-95"
+ className="w-9 h-9 rounded-xl bg-[#FFFFFF] border border-[#E8F2F2] hover:border-[#6CC6C9] text-[#1A2E30] hover:text-[#6CC6C9] transition flex items-center justify-center cursor-pointer shadow-md active:scale-95"
  >
  <ChevronLeft className="w-5 h-5" />
  </button>

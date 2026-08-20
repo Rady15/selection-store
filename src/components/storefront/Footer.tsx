@@ -120,7 +120,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
  {/* Col 1 & 2: Roastery Branding & Newsletter */}
  <div className="lg:col-span-2 space-y-4">
  <div className="flex items-center gap-3 cursor-pointer" onClick={() => onNavigate('/')}>
- <img src="/whitelogo.png" alt="Selection Store" className="h-10 w-auto" />
+ <img src="/coloredlogo.png" alt="Selection Store" className="h-10 w-auto" />
  </div>
 
  <p className="text-xs text-[#4A6869] leading-relaxed max-w-sm">

@@ -172,7 +172,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
  className="cursor-pointer group select-text"
  >
  <img
- src="/whitelogo.png"
+ src="/coloredlogo.png"
  alt="Selection Store"
  className="h-8 sm:h-10 w-auto group-hover:scale-105 transition duration-300 shrink-0"
  />
@@ -186,7 +186,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
  >
  <button
  onClick={() => onNavigate('/')}
- className={`hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${currentPath === '/' ? 'text-[#6CC6C9] border-[#6CC6C9]' : 'border-transparent text-[#D0DEDF]'
+ className={`hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${currentPath === '/' ? 'text-[#6CC6C9] border-[#6CC6C9]' : 'border-transparent text-[#1A2E30]'
  }`}
  >
  {t('الرئيسية', 'Home')}
@@ -201,7 +201,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
  onClick={() => onNavigate('/products')}
  className={`flex items-center gap-1.5 hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${(currentPath || '').startsWith('/products') || (currentPath || '').startsWith('/category')
  ? 'text-[#6CC6C9] border-[#6CC6C9]'
- : 'border-transparent text-[#D0DEDF]'
+ : 'border-transparent text-[#1A2E30]'
  }`}
  >
  <span>{t('متجر القهوة والمعدات', 'Coffee & Gear Shop')}</span>
@@ -218,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
 
  <button
  onClick={() => onNavigate('/about')}
- className={`hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${currentPath === '/about' ? 'text-[#6CC6C9] border-[#6CC6C9]' : 'border-transparent text-[#D0DEDF]'
+ className={`hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${currentPath === '/about' ? 'text-[#6CC6C9] border-[#6CC6C9]' : 'border-transparent text-[#1A2E30]'
  }`}
  >
  {t('عن المحمصة', 'About Us')}
@@ -226,7 +226,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
 
  <button
  onClick={() => onNavigate('/wholesale')}
- className={`hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${currentPath === '/wholesale' ? 'text-[#6CC6C9] border-[#6CC6C9]' : 'border-transparent text-[#D0DEDF]'
+ className={`hover:text-[#6CC6C9] transition py-1 border-b-2 cursor-pointer ${currentPath === '/wholesale' ? 'text-[#6CC6C9] border-[#6CC6C9]' : 'border-transparent text-[#1A2E30]'
  }`}
  >
  {t('طلب مبيعات الجملة', 'Wholesale')}
@@ -255,7 +255,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSearch, onNavigate, curren
  setCurrency(c as Currency);
  setIsCurrencyDropdownOpen(false);
  }}
- className={`w-full text-center px-3 py-1.5 text-xs hover:bg-[#0E5257]/30 transition cursor-pointer ${currency === c ? 'text-[#6CC6C9] font-bold' : 'text-[#D0DEDF]'
+ className={`w-full text-center px-3 py-1.5 text-xs hover:bg-[#0E5257]/30 transition cursor-pointer ${currency === c ? 'text-[#6CC6C9] font-bold' : 'text-[#1A2E30]'
  }`}
  >
  {c}

@@ -120,7 +120,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
  {/* Mobile Top Bar */}
  <header className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 bg-[#FFFFFF] border-b border-[#E8F2F2]">
- <img src="/whitelogo.png" alt="Selection Store" className="h-7 w-auto" />
+ <img src="/coloredlogo.png" alt="Selection Store" className="h-7 w-auto" />
  <div className="flex items-center gap-2">
  <button
  onClick={toggleLanguage}
@@ -152,7 +152,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
  <div className="flex flex-col min-h-0 flex-1">
  <div className="p-4 border-b border-[#E8F2F2] flex items-center justify-between">
- <img src="/whitelogo.png" alt="Selection Store" className="h-8 w-auto" />
+ <img src="/coloredlogo.png" alt="Selection Store" className="h-8 w-auto" />
  <button
  onClick={closeMobileNav}
  className="md:hidden p-1.5 rounded-lg text-[#6B8C8E] hover:text-[#6CC6C9] hover:bg-[#F0FAFA] transition cursor-pointer"

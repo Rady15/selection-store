@@ -73,7 +73,7 @@ export const MobileMenuDrawer: React.FC<MobileMenuDrawerProps> = ({ isOpen, onCl
 
  {/* Header */}
  <div className="p-4 border-b border-[#E8F2F2] flex items-center justify-between">
- <img src="/whitelogo.png" alt="Selection Store" className="h-8 w-auto" />
+ <img src="/coloredlogo.png" alt="Selection Store" className="h-8 w-auto" />
  <button
  onClick={handleClose}
  className="p-1.5 rounded-lg text-[#6B8C8E] hover:text-[#6CC6C9] hover:bg-[#F0FAFA] transition cursor-pointer"
