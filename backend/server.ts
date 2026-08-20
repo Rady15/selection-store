@@ -1254,7 +1254,7 @@ async function startServer() {
     // so it is loaded lazily and only when running the local dev server.
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, allowedHosts: true },
       appType: 'spa'
     });
     app.use(vite.middlewares);
