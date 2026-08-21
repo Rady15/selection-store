@@ -18,7 +18,7 @@ interface TaxInvoiceOptions {
 }
 
 const fallbackSettings: TaxInvoiceSettings = {
- store_name_ar: 'محمصة سليكشن القهوة المختصة',
+ store_name_ar: 'محمصة سليكشن للقهوة',
  store_name_en: 'Selection Specialty Coffee Roasters',
  vat_number: '310928374800003',
  vat_rate: 0.15,
