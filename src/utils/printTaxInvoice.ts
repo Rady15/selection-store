@@ -222,7 +222,7 @@ export function printTaxInvoice(order: Order, opts: TaxInvoiceOptions): void {
  ${order.cod_surcharge && order.cod_surcharge > 0 ? totalsRow(t('رسوم الدفع عند الاستلام', 'COD Surcharge'), '+' + formatPrice(order.cod_surcharge), 'color:#4FA8AD') : ''}
 
  <div class="vat-box">
- ${totalsRow(t('الوعاء الضريبي (قبل ضريبة القيمة المضافة)', 'VAT Base (before VAT)'), formatPrice(vatBase))}
+ ${totalsRow(t('المبلغ الخاضع لضريبة القيمة المضافة', 'Amount subject to VAT'), formatPrice(vatBase))}
  ${totalsRow(t(`ضريبة القيمة المضافة (${Math.round(vatRate * 100)}%)`, `VAT (${Math.round(vatRate * 100)}%)`), formatPrice(order.tax_amount), 'font-weight:700')}
  </div>
 
