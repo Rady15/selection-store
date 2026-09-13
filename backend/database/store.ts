@@ -21,7 +21,8 @@ import {
   Banner,
   QuizQuestion,
   QuizSettings,
-  QuizConfig
+  QuizConfig,
+  AssistantConfig
 } from '../../src/types';
 
 const DATA_FILE = process.env.VERCEL === '1'
@@ -82,12 +83,28 @@ export interface DatabaseState {
   newsletterSubscribers: any[];
   banners: Banner[];
   quizConfig: QuizConfig;
+  assistantConfig: AssistantConfig;
   // Stripe payments are only persisted as orders AFTER the payment succeeds.
   // Until then the full order payload is staged here keyed by payment_intent_id
   // (or a temporary sandbox key) so nothing appears in the dashboards early.
   pendingPayments: Record<string, any>;
   auditLogs: any[];
 }
+
+const initialAssistantConfig: AssistantConfig = {
+  enabled: true,
+  name_ar: 'مساعد سيليكشن',
+  name_en: 'Selection Assistant',
+  welcome_ar: 'أهلاً بك 👋 أنا مساعد سيليكشن. أقدر أساعدك تختار القهوة المناسبة، تعرف الشحن والدفع، أو أوصلك لاختبار القهوة.',
+  welcome_en: 'Hi 👋 I’m the Selection Assistant. I can help you choose coffee, understand shipping and payment, or guide you to the Coffee Finder.',
+  avatar_url: '/assistant-robot.svg',
+  quick_actions: [
+    { id: 'recommend', label_ar: 'رشّح لي قهوة', label_en: 'Recommend coffee', prompt_ar: 'رشح لي قهوة مناسبة لذوقي', prompt_en: 'Recommend a coffee for my taste' },
+    { id: 'espresso', label_ar: 'قهوة للإسبرسو', label_en: 'Coffee for espresso', prompt_ar: 'عايز قهوة مناسبة للإسبرسو', prompt_en: 'I need coffee for espresso' },
+    { id: 'shipping', label_ar: 'الشحن والتوصيل', label_en: 'Shipping & delivery', prompt_ar: 'ما هي طرق الشحن والتوصيل؟', prompt_en: 'What are the shipping and delivery options?' },
+    { id: 'loyalty', label_ar: 'نقاط الولاء', label_en: 'Loyalty points', prompt_ar: 'ازاي نظام نقاط الولاء بيشتغل؟', prompt_en: 'How does the loyalty program work?' }
+  ]
+};
 
 const initialCategories: Category[] = [
   {
@@ -1009,55 +1026,15 @@ const initialStoreSettings: StoreSettings = {
 
 const initialQuizConfig: QuizConfig = {
   settings: {
-    base_score: 70,
     results_count: 3,
-    badge_ar: 'مستشار القهوة الذكي',
-    badge_en: 'Interactive Coffee Selector',
-    title_ar: 'اكتشف المحصول المخصص لذوقك بـ 30 ثانية',
-    title_en: 'Discover Your Ideal Specialty Crop in 30 Secs',
-    subtitle_ar: 'أجب عن 3 أسئلة بسيطة وسيقوم الخوارزمية الخاصة بسليكشن باقتراح القهوة الأكثر ملاءمة لمعايير تحضيرك.',
-    subtitle_en: 'Answer 3 simple questions to find the perfect micro-lot matched to your brew preference.'
+    badge_ar: 'اختبار ترشيح القهوة',
+    badge_en: 'Coffee Finder Quiz',
+    title_ar: 'اكتشف القهوة المناسبة لذوقك',
+    title_en: 'Find the Coffee That Fits Your Taste',
+    subtitle_ar: 'جاوب على الأسئلة وسنطابق تفضيلاتك مع ملف كل قهوة في المتجر.',
+    subtitle_en: 'Answer a few questions and we will match your preferences to each coffee profile.'
   },
-  questions: [
-    {
-      id: 'q-brew-method',
-      title_ar: 'ما هي طريقتك الأساسية في تحضير القهوة؟',
-      title_en: 'What is your primary brewing method?',
-      sort_order: 1,
-      is_enabled: true,
-      options: [
-        { id: 'v60', label_ar: 'الترشيح V60 / كاليتا / أظرف مقطرة', label_en: 'Filter V60 / Kalita / Drip Bags', icon: '☕️', score_rules: [{ field: 'process_ar', operator: 'includes', value: 'مجففة', points: 15 }, { field: 'process_en', operator: 'includes', value: 'natural', points: 15 }, { field: 'process_en', operator: 'includes', value: 'dried', points: 15 }] },
-        { id: 'espresso', label_ar: 'الإسبرسو ومشروبات الحليب (اللاتيه)', label_en: 'Espresso & Milk Drinks', icon: '🥛', score_rules: [{ field: 'name_ar', operator: 'includes', value: 'مزيج', points: 20 }, { field: 'name_en', operator: 'includes', value: 'blend', points: 20 }, { field: 'process_ar', operator: 'includes', value: 'غسول', points: 20 }, { field: 'process_en', operator: 'includes', value: 'washed', points: 20 }] },
-        { id: 'frenchpress', label_ar: 'المكابس الفرنساوية / القهوة الباردة Cold Brew', label_en: 'French Press / Cold Brew', icon: '🧊', score_rules: [] },
-        { id: 'saudi', label_ar: 'القهوة السعودية التقليدية الهيل والزعفران', label_en: 'Traditional Saudi Coffee', icon: '🇸🇦', score_rules: [] }
-      ]
-    },
-    {
-      id: 'q-flavor',
-      title_ar: 'ما هي طابع النكهات والإيحاءات التي تفضلها في الكوب؟',
-      title_en: 'Which flavor notes do you prefer?',
-      sort_order: 2,
-      is_enabled: true,
-      options: [
-        { id: 'fruity', label_ar: 'فاكهية ياسمين وتوت وأزهار عطرية', label_en: 'Fruity, Floral, Jasmine & Berry', icon: '🫐', score_rules: [{ field: 'tasting_notes_ar', operator: 'includes', value: 'توت', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'berry', points: 15 }, { field: 'tasting_notes_ar', operator: 'includes', value: 'ورد', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'floral', points: 15 }] },
-        { id: 'chocolate', label_ar: 'شوكولاتة فاخرة ومكسرات كاجو ولوز', label_en: 'Dark Chocolate, Nuts & Almond', icon: '🍫', score_rules: [{ field: 'tasting_notes_ar', operator: 'includes', value: 'شوكولاتة', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'chocolate', points: 15 }, { field: 'tasting_notes_ar', operator: 'includes', value: 'مكسرات', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'nut', points: 15 }] },
-        { id: 'caramel', label_ar: 'حلاوة كراميل وعسل صافي متوازن', label_en: 'Caramel Sweetness & Honey', icon: '🍯', score_rules: [{ field: 'tasting_notes_ar', operator: 'includes', value: 'كراميل', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'caramel', points: 15 }, { field: 'tasting_notes_ar', operator: 'includes', value: 'عسل', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'honey', points: 15 }] },
-        { id: 'citrus', label_ar: 'حمضية منعشة مثل الخوخ والعنب الأحمر', label_en: 'Crisp Citrus, Peach & Red Grape', icon: '🍑', score_rules: [{ field: 'tasting_notes_ar', operator: 'includes', value: 'حمضية', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'citrus', points: 15 }, { field: 'tasting_notes_ar', operator: 'includes', value: 'خوخ', points: 15 }, { field: 'tasting_notes_en', operator: 'includes', value: 'peach', points: 15 }] }
-      ]
-    },
-    {
-      id: 'q-roast',
-      title_ar: 'اختر درجة التحميص المفضلة لديك',
-      title_en: 'Preferred Roast Level',
-      sort_order: 3,
-      is_enabled: true,
-      options: [
-        { id: 'light', label_ar: 'تحميص خفيف (لإبراز الحمضية والفاكهة)', label_en: 'Light Roast (Filter Oriented)', icon: '', score_rules: [{ field: 'roast_level_ar', operator: 'includes', value: 'خفيفة', points: 15 }, { field: 'roast_level_en', operator: 'includes', value: 'light', points: 15 }] },
-        { id: 'medium', label_ar: 'تحميص متوسط (متوازن لجميع الطرق)', label_en: 'Medium Roast (Omni-Roast)', icon: '', score_rules: [{ field: 'roast_level_ar', operator: 'includes', value: 'متوسطة', points: 15 }, { field: 'roast_level_en', operator: 'includes', value: 'medium', points: 15 }] },
-        { id: 'dark', label_ar: 'تحميص غامق (قوام ثقيل للإسبرسو)', label_en: 'Dark Roast (Rich Espresso)', icon: '', score_rules: [{ field: 'roast_level_ar', operator: 'includes', value: 'داكنة', points: 15 }, { field: 'roast_level_en', operator: 'includes', value: 'dark', points: 15 }] }
-      ]
-    }
-  ]
+  questions: []
 };
 
 class Database {
@@ -1082,6 +1059,7 @@ class Database {
       newsletterSubscribers: [],
       banners: [],
       quizConfig: initialQuizConfig,
+      assistantConfig: initialAssistantConfig,
       pendingPayments: {},
       auditLogs: []
     };
@@ -1194,6 +1172,7 @@ class Database {
       newsletterSubscribers: parsed.newsletterSubscribers || [],
       banners: parsed.banners || [],
       quizConfig: Array.isArray(parsed.quizConfig) ? { ...initialQuizConfig, questions: parsed.quizConfig } : (parsed.quizConfig?.questions ? parsed.quizConfig : initialQuizConfig),
+      assistantConfig: parsed.assistantConfig ? { ...initialAssistantConfig, ...parsed.assistantConfig, quick_actions: Array.isArray(parsed.assistantConfig.quick_actions) ? parsed.assistantConfig.quick_actions : initialAssistantConfig.quick_actions } : initialAssistantConfig,
       pendingPayments: parsed.pendingPayments || {},
       auditLogs: parsed.auditLogs || []
     };
@@ -2307,9 +2286,43 @@ class Database {
   }
 
   saveQuizConfig(quizConfig: QuizConfig): QuizConfig {
-    this.state.quizConfig = quizConfig;
+    const questions = Array.isArray(quizConfig?.questions) ? quizConfig.questions.map((q:any, index:number) => ({
+      ...q,
+      sort_order: index + 1,
+      options: Array.isArray(q.options) ? q.options.map((o:any) => {
+        const { score_rules: _legacy, ...clean } = o || {};
+        return clean;
+      }) : []
+    })) : [];
+    this.state.quizConfig = {
+      ...quizConfig,
+      settings: {
+        results_count: Math.max(1, Math.min(6, Number(quizConfig?.settings?.results_count || 3))),
+        badge_ar: String(quizConfig?.settings?.badge_ar || ''),
+        badge_en: String(quizConfig?.settings?.badge_en || ''),
+        title_ar: String(quizConfig?.settings?.title_ar || ''),
+        title_en: String(quizConfig?.settings?.title_en || ''),
+        subtitle_ar: String(quizConfig?.settings?.subtitle_ar || ''),
+        subtitle_en: String(quizConfig?.settings?.subtitle_en || '')
+      },
+      questions
+    } as QuizConfig;
     this.saveState();
     return this.state.quizConfig;
+  }
+
+  getAssistantConfig(): AssistantConfig {
+    return this.state.assistantConfig;
+  }
+
+  saveAssistantConfig(config: AssistantConfig): AssistantConfig {
+    this.state.assistantConfig = {
+      ...initialAssistantConfig,
+      ...config,
+      quick_actions: Array.isArray(config.quick_actions) ? config.quick_actions : initialAssistantConfig.quick_actions
+    };
+    this.saveState();
+    return this.state.assistantConfig;
   }
 }
 

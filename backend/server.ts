@@ -170,16 +170,36 @@ app.get('/api/categories', (req, res) => {
 });
 
 app.post('/api/categories', requireAdmin, (req, res) => {
-  const category = db.saveCategory(req.body);
+  const body = req.body || {};
+  if (!body.name_ar || !body.name_en || !body.slug || !body.image) return res.status(400).json({ error_ar:'اسم الفئة والصورة والرابط مطلوبة', error_en:'Category names, image and slug are required' });
+  const category = db.saveCategory({ ...body, id: body.id || `cat-${Date.now()}`, sort_order: Number(body.sort_order || 0), featured: Boolean(body.featured) });
+  res.json(category);
+});
+app.put('/api/categories/:id', requireAdmin, (req, res) => {
+  const existing = db.getCategories().find(c => c.id === req.params.id);
+  if (!existing) return res.status(404).json({ error:'Category not found' });
+  const body = req.body || {};
+  const category = db.saveCategory({ ...existing, ...body, id:req.params.id, sort_order:Number(body.sort_order ?? existing.sort_order), featured:Boolean(body.featured ?? existing.featured) });
   res.json(category);
 });
 
 app.delete('/api/categories/:id', requireAdmin, (req, res) => {
+  const used = db.getProducts({ category_id:req.params.id });
+  if (used.length) return res.status(409).json({ error_ar:'لا يمكن حذف فئة مرتبطة بمنتجات', error_en:'Cannot delete a category that has products' });
   db.deleteCategory(req.params.id);
   res.json({ success: true });
 });
 
 // Products
+const normalizeAdminProduct = (body: any, existingId?: string) => {
+  const category = db.getCategories().find(c => c.id === body.category_id || c.slug === body.category_slug);
+  if (!category) throw new Error('A valid product category is required');
+  const images = Array.isArray(body.images) ? body.images.filter((x:any)=>typeof x==='string' && x.trim()) : [];
+  if (!images.length) throw new Error('At least one product image is required');
+  const options = Array.isArray(body.weight_options) ? body.weight_options.filter((x:any)=>x && x.value) : [];
+  if (!options.length) throw new Error('At least one selling option is required');
+  return { ...body, id: existingId || body.id || `prod-${Date.now()}`, category_id:category.id, category_slug:category.slug, images, weight_options:options, grind_options:Array.isArray(body.grind_options)?body.grind_options:[], unit_type:body.unit_type || 'weight', stock:Number(body.stock||0), price:Number(body.price||0), sale_price:body.sale_price === '' || body.sale_price == null ? undefined : Number(body.sale_price), sold_count:Number(body.sold_count||0), created_at:body.created_at || new Date().toISOString() };
+};
 app.get('/api/products', (req, res) => {
   const {
     category_id,
@@ -221,16 +241,12 @@ app.get('/api/products/:slug', (req, res) => {
 });
 
 app.post('/api/products', requireAdmin, (req, res) => {
-  const product = db.saveProduct({
-    ...req.body,
-    id: req.body.id || `prod-${Date.now()}`,
-    created_at: req.body.created_at || new Date().toISOString()
-  });
+  const product = db.saveProduct(normalizeAdminProduct(req.body));
   res.json(product);
 });
 
 app.put('/api/products/:id', requireAdmin, (req, res) => {
-  const product = db.saveProduct({ ...req.body, id: req.params.id });
+  const product = db.saveProduct(normalizeAdminProduct(req.body, req.params.id));
   res.json(product);
 });
 
@@ -453,6 +469,68 @@ app.get('/api/public/settings', (_req, res) => res.json(db.getStoreSettings()));
 app.get('/api/public/homepage', (_req, res) => res.json(db.getHomepageSections()));
 app.get('/api/public/quiz', (_req, res) => res.json(db.getQuizConfig()));
 
+function normalizeText(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase();
+}
+function asList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(normalizeText).filter(Boolean);
+  if (typeof value === 'string') return value.split(',').map(normalizeText).filter(Boolean);
+  return [];
+}
+function numberSimilarity(a: unknown, b: unknown): number {
+  const x = Number(a), y = Number(b);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return 0;
+  return Math.max(0, 1 - Math.abs(x - y) / 4);
+}
+function optionMatch(product: any, preferences: any): number {
+  const fields: string[] = Array.isArray(preferences?.fields) ? preferences.fields : [];
+  if (!fields.length) return 0;
+  const profile = product.coffee_profile || {};
+  const flavorNotes = asList([...(product.tasting_notes_ar || []), ...(product.tasting_notes_en || []), ...(profile.flavor_notes || [])]);
+  const scores:number[] = [];
+  for (const field of fields) {
+    if (field === 'brew_method') {
+      const wanted = asList(preferences.brew_methods);
+      const actual = asList(profile.brew_methods?.length ? profile.brew_methods : product.grind_options);
+      scores.push(wanted.length && actual.length && wanted.some(v => actual.includes(v)) ? 1 : 0);
+    } else if (field === 'roast_level') {
+      const wanted = asList(preferences.roast_levels);
+      scores.push(wanted.includes(normalizeText(profile.roast_level || product.roast_level_en || product.roast_level_ar)) ? 1 : 0);
+    } else if (field === 'flavor') {
+      const wanted = asList(preferences.flavors);
+      if (!wanted.length || !flavorNotes.length) { scores.push(0); continue; }
+      const hits = wanted.filter(w => flavorNotes.some(n => n.includes(w) || w.includes(n)));
+      scores.push(Math.min(1, hits.length / Math.max(1, wanted.length)));
+    } else if (['strength','acidity','sweetness','body','balance','bitterness','caffeine'].includes(field)) {
+      scores.push(numberSimilarity(profile[field] ?? product.flavor_profile?.[field], preferences[field]));
+    }
+  }
+  return scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : 0;
+}
+function calculateCoffeeRecommendations(answers: Record<string,string>) {
+  const quiz:any = db.getQuizConfig();
+  const questions:any[] = (quiz.questions || []).filter((q:any)=>q.is_enabled).sort((a:any,b:any)=>a.sort_order-b.sort_order);
+  const products:any[] = db.getProducts({}).filter((p:any)=>p.recommendation_enabled !== false && p.coffee_profile);
+  const ranked = products.map((product:any) => {
+    const questionScores:number[] = [];
+    for (const q of questions) {
+      const option = (q.options || []).find((o:any)=>o.id === answers?.[q.id]);
+      if (!option) continue;
+      const score = optionMatch(product, option.preferences || {});
+      if (score > 0 || ((option.preferences?.fields || []).length > 0)) questionScores.push(score);
+    }
+    const score = questionScores.length ? Math.round((questionScores.reduce((a,b)=>a+b,0)/questionScores.length)*100) : 0;
+    return {product, score};
+  });
+  return ranked.sort((a,b)=>b.score-a.score || Number(b.product.rating||0)-Number(a.product.rating||0) || Number(b.product.sold_count||0)-Number(a.product.sold_count||0));
+}
+app.post('/api/public/quiz/recommend', (req, res) => {
+  const answers = req.body?.answers && typeof req.body.answers === 'object' ? req.body.answers : {};
+  const quiz:any = db.getQuizConfig();
+  const ranked = calculateCoffeeRecommendations(answers).slice(0, Math.max(1, Math.min(6, Number(quiz.settings?.results_count || 3))));
+  res.json({results: ranked.map(x=>({ ...x.product, match_score:x.score }))});
+});
+
 // Every /api/admin endpoint is protected server-side. Frontend visibility is never a security boundary.
 app.use('/api/admin', requireAdmin, auditAdminMutation);
 
@@ -477,22 +555,24 @@ app.get('/api/admin/products', (req, res) => {
 });
 
 app.post('/api/admin/products', (req, res) => {
-  const product = db.saveProduct({
-    ...req.body,
-    id: req.body.id || `prod-${Date.now()}`,
-    created_at: req.body.created_at || new Date().toISOString()
-  });
+  const product = db.saveProduct(normalizeAdminProduct(req.body));
   res.json(product);
 });
 
 app.put('/api/admin/products/:id', (req, res) => {
-  const product = db.saveProduct({ ...req.body, id: req.params.id });
+  const product = db.saveProduct(normalizeAdminProduct(req.body, req.params.id));
   res.json(product);
 });
 
 app.delete('/api/admin/products/:id', (req, res) => {
   db.deleteProduct(req.params.id);
   res.json({ success: true });
+});
+
+// Payments report
+app.get('/api/admin/payments', (req, res) => {
+  const orders = db.getOrders().map((o:any) => ({ id:o.id, order_number:o.order_number, customer_name:o.customer_name, email:o.email, payment_method:o.payment_method, payment_status:o.payment_status, total_amount:o.total_amount, payment_intent_id:o.payment_intent_id, created_at:o.created_at, status:o.status }));
+  res.json(orders.sort((a:any,b:any)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime()));
 });
 
 // Orders
@@ -879,7 +959,9 @@ app.delete('/api/newsletter/subscribers/:id', (req, res) => {
 // Banners
 app.get('/api/banners', (req, res) => {
   const { position } = req.query;
-  res.json(db.getBanners(position as string));
+  const now = new Date();
+  const visible = db.getBanners(position as string).filter((b:any) => { const start=!b.start_date || new Date(`${b.start_date}T00:00:00`).getTime()<=now.getTime(); const end=!b.end_date || new Date(`${b.end_date}T23:59:59`).getTime()>=now.getTime(); return start && end; });
+  res.json(visible);
 });
 
 app.get('/api/admin/banners', (req, res) => {
@@ -887,11 +969,10 @@ app.get('/api/admin/banners', (req, res) => {
 });
 
 app.post('/api/admin/banners', (req, res) => {
-  const banner = db.saveBanner({
-    ...req.body,
-    id: req.body.id || `banner-${Date.now()}`,
-    created_at: req.body.created_at || new Date().toISOString()
-  });
+  const body = req.body || {};
+  if (!body.title_ar || !body.title_en || !body.position) return res.status(400).json({ error_ar:'عنوان البانر والموضع مطلوبان', error_en:'Banner title and position are required' });
+  if (body.start_date && body.end_date && body.start_date > body.end_date) return res.status(400).json({ error_ar:'تاريخ البداية يجب أن يسبق النهاية', error_en:'Start date must be before end date' });
+  const banner = db.saveBanner({ ...body, id:body.id || `banner-${Date.now()}`, image_url:String(body.image_url || ''), link_url:String(body.link_url || ''), created_at:body.created_at || new Date().toISOString() });
   res.json(banner);
 });
 
@@ -940,7 +1021,9 @@ app.get('/api/admin/settings', (req, res) => {
 });
 
 app.put('/api/admin/settings', (req, res) => {
-  const settings = db.saveStoreSettings(req.body);
+  const current = db.getStoreSettings();
+  const body = req.body || {};
+  const settings = db.saveStoreSettings({ ...current, ...body, vat_rate:Math.max(0, Math.min(1, Number(body.vat_rate ?? current.vat_rate))), free_shipping_threshold:Math.max(0, Number(body.free_shipping_threshold ?? current.free_shipping_threshold)), points_per_sar:Math.max(0, Number(body.points_per_sar ?? current.points_per_sar)), sar_per_point:Math.max(0, Number(body.sar_per_point ?? current.sar_per_point)) });
   res.json(settings);
 });
 
@@ -953,6 +1036,7 @@ app.put('/api/admin/quiz', (req, res) => {
   const quizConfig = db.saveQuizConfig(req.body);
   res.json(quizConfig);
 });
+
 
 // Export CSV Endpoint
 app.get('/api/admin/audit-logs', (req, res) => res.json(db.getAuditLogs()));

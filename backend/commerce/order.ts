@@ -8,9 +8,9 @@ const SHIPPING_PRICES: Record<string, number> = {
   store_pickup: 0
 };
 
-const FREE_SHIPPING_THRESHOLD = 199;
-const VAT_RATE = 0.15;
-const COD_SURCHARGE = 15;
+const DEFAULT_FREE_SHIPPING_THRESHOLD = 199;
+const DEFAULT_VAT_RATE = 0.15;
+const DEFAULT_COD_SURCHARGE = 15;
 
 function cleanString(value: unknown, max = 300) {
   return String(value ?? '').trim().slice(0, max);
@@ -60,7 +60,7 @@ export function buildTrustedOrder(input: any, user: any): Omit<Order, 'id' | 'or
     const grind = cleanString(raw?.grind, 50) as any;
     const weightOption = product.weight_options?.find(w => w.value === weight);
     if (!weightOption) throw new Error(`Invalid weight for ${product.slug}`);
-    if (!product.grind_options?.includes(grind)) throw new Error(`Invalid grind for ${product.slug}`);
+    if ((product.grind_options || []).length > 0 && !product.grind_options.includes(grind)) throw new Error(`Invalid grind for ${product.slug}`);
 
     const variant = product.variants?.find(v => v.weight === weight && v.grind === grind);
     const availableStock = variant ? Number(variant.stock) : Number(product.stock);
@@ -108,13 +108,17 @@ export function buildTrustedOrder(input: any, user: any): Omit<Order, 'id' | 'or
   const maxRedeemablePoints = Math.floor(Math.max(0, subtotal - couponDiscount) / 0.05);
   if (pointsRequested > maxRedeemablePoints) throw new Error('Loyalty points exceed the payable amount');
 
-  const loyaltyDiscount = Number((pointsRequested * 0.05).toFixed(2));
+  const sarPerPoint = Number(db.getStoreSettings?.()?.sar_per_point ?? 0.05) || 0.05;
+  const loyaltyDiscount = Number((pointsRequested * sarPerPoint).toFixed(2));
   const discountAmount = Number((couponDiscount + loyaltyDiscount).toFixed(2));
   const taxableSubtotal = Number(Math.max(0, subtotal - discountAmount).toFixed(2));
-  const taxAmount = Number((taxableSubtotal * VAT_RATE).toFixed(2));
+  const settings = db.getStoreSettings?.() || {};
+  const taxRate = Number(settings.vat_rate ?? DEFAULT_VAT_RATE);
+  const taxAmount = Number((taxableSubtotal * taxRate).toFixed(2));
   const preShippingTotal = Number((taxableSubtotal + taxAmount).toFixed(2));
-  const shippingCost = freeShipping || preShippingTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_PRICES[shippingMethod];
-  const codSurcharge = paymentMethod === 'cod' ? COD_SURCHARGE : 0;
+  const freeShippingThreshold = Number(settings.free_shipping_threshold ?? DEFAULT_FREE_SHIPPING_THRESHOLD);
+  const shippingCost = freeShipping || preShippingTotal >= freeShippingThreshold ? 0 : SHIPPING_PRICES[shippingMethod];
+  const codSurcharge = paymentMethod === 'cod' ? DEFAULT_COD_SURCHARGE : 0;
   const totalAmount = Number((preShippingTotal + shippingCost + codSurcharge).toFixed(2));
 
   const address = normalizeAddress(input.shipping_address, user);
