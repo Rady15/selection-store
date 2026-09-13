@@ -24,6 +24,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides, onNavigate }) =>
  if (!slides || slides.length === 0) return null;
 
  const currentSlide = slides[currentIdx] || slides[0];
+ const handleNavigate = (url: string) => /^https?:\/\//i.test(url) ? window.open(url, '_blank', 'noopener,noreferrer') : onNavigate(url);
 
  return (
  <div className="relative w-full min-h-[500px] sm:min-h-[600px] bg-[#FFFFFF] overflow-hidden flex items-center justify-center border-b border-[#E8F2F2]">
@@ -82,7 +83,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ slides, onNavigate }) =>
  {/* CTA Button */}
  <div className="pt-2 sm:pt-4">
  <button
- onClick={() => onNavigate(currentSlide.cta_link)}
+ onClick={() => handleNavigate(currentSlide.cta_link)}
  className="bg-[#0E5257] hover:bg-[#2B7D82] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl text-xs sm:text-base font-bold transition duration-300 shadow-2xl shadow-[#0E5257]/50 cursor-pointer inline-flex items-center gap-2 group transform active:scale-95"
  >
  <span>{language === 'ar' ? currentSlide.cta_text_ar : currentSlide.cta_text_en}</span>

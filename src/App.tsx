@@ -13,7 +13,6 @@ import Footer from './components/storefront/Footer';
 import SearchOverlay from './components/storefront/SearchOverlay';
 import CartDrawer from './components/storefront/CartDrawer';
 import AuthModal from './components/storefront/AuthModal';
-import CoffeeFinderFloat from './components/storefront/CoffeeFinderFloat';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -204,11 +203,6 @@ function MainApp() {
  {/* Show Storefront Footer if not in Admin */}
  {!isAdminRoute && (
  <Footer onNavigate={navigate} />
- )}
-
- {/* Floating Coffee Advisor button (storefront only) */}
- {!isAdminRoute && (
- <CoffeeFinderFloat onNavigate={navigate} />
  )}
 
  {/* Modals & Overlays */}

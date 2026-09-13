@@ -74,13 +74,14 @@ export const AdminCategoriesManager: React.FC = () => {
  e.preventDefault();
  setSaving(true);
  try {
- const method = editingId ? 'POST' : 'POST';
+ const method = editingId ? 'PUT' : 'POST';
  const url = editingId ? `/api/categories/${editingId}` : '/api/categories';
- await fetch(url, {
+ const res = await fetch(url, {
  method,
  headers: { 'Content-Type': 'application/json' },
  body: JSON.stringify(form),
  });
+ if (!res.ok) { const data = await res.json().catch(()=>({})); throw new Error(data.error_ar || data.error_en || 'Save failed'); }
  setShowModal(false);
  loadCategories();
  } catch {
@@ -247,7 +248,7 @@ export const AdminCategoriesManager: React.FC = () => {
  className="w-full font-mono" />
  </div>
 
- <ImageUploader value={form.image} onChange={val => updateField('image', val)} label={t('رابط الصورة', 'Image URL')} />
+ <ImageUploader value={form.image} onChange={val => updateField('image', val)} label={t('صورة الفئة (تظهر في المتجر)', 'Category image (shown in storefront)')} required />
 
  <div>
  <label className="block text-[#4A6869] mb-1 font-semibold">{t('الأيقونة', 'Icon')}</label>

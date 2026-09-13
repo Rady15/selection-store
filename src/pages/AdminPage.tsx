@@ -13,6 +13,7 @@ import AdminReviewsManager from '../components/admin/AdminReviewsManager';
 import AdminContactManager from '../components/admin/AdminContactManager';
 import AdminCategoriesManager from '../components/admin/AdminCategoriesManager';
 import AdminBannersManager from '../components/admin/AdminBannersManager';
+import AdminPaymentsManager from '../components/admin/AdminPaymentsManager';
 import AdminAnnouncementManager from '../components/admin/AdminAnnouncementManager';
 import AdminSettingsManager from '../components/admin/AdminSettingsManager';
 import AdminNewsletterManager from '../components/admin/AdminNewsletterManager';
@@ -22,7 +23,7 @@ import AdminProfileManager from '../components/admin/AdminProfileManager';
 const VALID_TABS = [
  'overview', 'products', 'orders', 'customers', 'reviews', 'coupons',
  'homepage', 'contact', 'stock-alerts', 'wholesale', 'categories',
- 'banners', 'announcement', 'settings', 'quiz', 'newsletter', 'profile'
+ 'banners', 'payments', 'announcement', 'settings', 'quiz', 'newsletter', 'profile'
 ];
 
 const getTabFromPath = (): string => {
@@ -63,6 +64,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onNavigate }) => {
  case 'wholesale': return <AdminWholesaleManager />;
  case 'categories': return <AdminCategoriesManager />;
  case 'banners': return <AdminBannersManager />;
+ case 'payments': return <AdminPaymentsManager />;
  case 'announcement': return <AdminAnnouncementManager />;
  case 'settings': return <AdminSettingsManager />;
  case 'quiz': return <AdminQuizManager />;

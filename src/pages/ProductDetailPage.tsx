@@ -380,9 +380,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
  </div>
 
  {/* Weight Selection */}
- {product.weight_options.length > 0 && (
+ {(product.weight_options || []).length > 0 && (
  <div className="space-y-2">
- <span className="text-xs font-bold text-[#6B8C8E] uppercase tracking-wider">{t('اختر الوزن المطلوب', 'Select Bag Size')}:</span>
+ <span className="text-xs font-bold text-[#6B8C8E] uppercase tracking-wider">{product.unit_type === 'piece' ? t('اختر عدد الحبات','Select Pieces') : product.unit_type === 'box' ? t('اختر حجم البوكس','Select Box Size') : product.unit_type === 'liter' ? t('اختر السعة','Select Capacity') : product.unit_type === 'meter' ? t('اختر الطول','Select Length') : t('اختر خيار البيع','Select Selling Option')}:</span>
  <div className="grid grid-cols-3 gap-2">
  {product.weight_options.map(w => (
  <button
@@ -401,7 +401,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ slug, onNa
  )}
 
  {/* Grind Selection */}
- {product.grind_options.length > 0 && (
+ {(product.grind_options || []).length > 0 && (
  <div className="space-y-2">
  <span className="text-xs font-bold text-[#6B8C8E] uppercase tracking-wider">{t('درجة الطحن المطلوبة', 'Grind Specification')}:</span>
  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

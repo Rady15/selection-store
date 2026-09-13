@@ -1,240 +1,54 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useLanguage } from '../context/LanguageContext';
-import { useCurrency } from '../context/CurrencyContext';
-import { useCart } from '../context/CartContext';
-import { Product, QuizQuestion, QuizSettings } from '../types';
+import React,{useEffect,useState} from 'react';
+import {useLanguage} from '../context/LanguageContext';
+import {Product,QuizQuestion,QuizSettings} from '../types';
 import ProductCard from '../components/storefront/ProductCard';
-import { Loader2, RotateCcw } from 'lucide-react';
+import {Loader2,RotateCcw,CheckCircle2} from 'lucide-react';
 
-interface CoffeeFinderPageProps {
- onNavigate: (path: string) => void;
-}
+interface Props{onNavigate:(path:string)=>void}
+type Result=Product & {match_score:number};
 
-export const CoffeeFinderPage: React.FC<CoffeeFinderPageProps> = ({ onNavigate }) => {
- const { language, t } = useLanguage();
-
- const [step, setStep] = useState(0);
- const [answers, setAnswers] = useState<Record<string, string>>({});
- const [questions, setQuestions] = useState<QuizQuestion[]>([]);
- const [settings, setSettings] = useState<QuizSettings | null>(null);
- const [allProducts, setAllProducts] = useState<Product[]>([]);
- const [matchedProducts, setMatchedProducts] = useState<Product[]>([]);
- const [loading, setLoading] = useState(true);
-
- useEffect(() => {
- Promise.all([
- fetch('/api/products').then(r => r.json()),
- fetch('/api/public/quiz').then(r => r.json())
- ])
- .then(([products, quiz]) => {
- setAllProducts(products);
- const qs = quiz.questions || quiz;
- const s = quiz.settings || { base_score: 70, results_count: 3, badge_ar: '', badge_en: '', title_ar: '', title_en: '', subtitle_ar: '', subtitle_en: '' };
- setSettings(s);
- const enabled = qs.filter((q: QuizQuestion) => q.is_enabled).sort((a: QuizQuestion, b: QuizQuestion) => a.sort_order - b.sort_order);
- setQuestions(enabled);
- if (enabled.length > 0) setStep(1);
- setLoading(false);
- })
- .catch(err => { console.error(err); setLoading(false); });
- }, []);
-
- const getFieldValue = (product: Product, field: string): string | string[] => {
- return (product as any)[field] ?? '';
+export const CoffeeFinderPage:React.FC<Props>=({onNavigate})=>{
+ const {language,t}=useLanguage();
+ const [step,setStep]=useState(0);
+ const [answers,setAnswers]=useState<Record<string,string>>({});
+ const [questions,setQuestions]=useState<QuizQuestion[]>([]);
+ const [settings,setSettings]=useState<QuizSettings|null>(null);
+ const [results,setResults]=useState<Result[]>([]);
+ const [loading,setLoading]=useState(true);
+ const [scoring,setScoring]=useState(false);
+ useEffect(()=>{Promise.all([fetch('/api/public/quiz').then(r=>r.json())]).then(([quiz])=>{
+   const qs=(quiz.questions||quiz||[]).filter((q:QuizQuestion)=>q.is_enabled).sort((a:QuizQuestion,b:QuizQuestion)=>a.sort_order-b.sort_order);
+   setQuestions(qs);setSettings(quiz.settings||null);setStep(qs.length?1:0);setLoading(false);
+ }).catch(()=>setLoading(false));},[]);
+ const selectAnswer=async(q:QuizQuestion,optId:string)=>{
+   const next={...answers,[q.id]:optId};setAnswers(next);
+   const index=questions.findIndex(x=>x.id===q.id);
+   if(index<questions.length-1){setStep(index+2);return;}
+   setScoring(true);
+   try{const r=await fetch('/api/public/quiz/recommend',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers:next})});const data=await r.json();setResults(Array.isArray(data.results)?data.results:[]);setStep(questions.length+1);}catch{setResults([]);setStep(questions.length+1)}finally{setScoring(false);}
  };
-
- const evaluateRule = (product: Product, field: string, operator: string, value: string): boolean => {
- if (!value) return false;
- const fieldVal = getFieldValue(product, field);
- if (Array.isArray(fieldVal)) {
- if (operator === 'includes') return fieldVal.some(v => v.toLowerCase().includes(value.toLowerCase()));
- if (operator === 'equals') return fieldVal.some(v => v.toLowerCase() === value.toLowerCase());
- } else if (typeof fieldVal === 'string') {
- if (operator === 'includes') return fieldVal.toLowerCase().includes(value.toLowerCase());
- if (operator === 'equals') return fieldVal.toLowerCase() === value.toLowerCase();
- }
- return false;
- };
-
- const calculateScores = (ans: Record<string, string>) => {
- const baseScore = settings?.base_score ?? 70;
- return allProducts.map(product => {
- let score = baseScore;
-
- for (const q of questions) {
- const answerId = ans[q.id];
- if (!answerId) continue;
- const option = q.options.find(o => o.id === answerId);
- if (!option || option.score_rules.length === 0) continue;
-
- let maxPoints = 0;
- for (const rule of option.score_rules) {
- if (evaluateRule(product, rule.field, rule.operator, rule.value)) {
- if (rule.points > maxPoints) maxPoints = rule.points;
- }
- }
- score += maxPoints;
- }
-
- return { product, score };
- });
- };
-
- const selectAnswer = (qId: string, optId: string) => {
- const newAnswers = { ...answers, [qId]: optId };
- setAnswers(newAnswers);
-
- const currentIdx = questions.findIndex(q => q.id === qId);
- if (currentIdx < questions.length - 1) {
- setStep(currentIdx + 2);
- } else {
- const scored = calculateScores(newAnswers);
- scored.sort((a, b) => b.score - a.score);
- setMatchedProducts(scored.map(s => s.product));
- setStep(questions.length + 1);
- }
- };
-
- const resetQuiz = () => {
- setStep(1);
- setAnswers({});
- setMatchedProducts([]);
- };
-
- if (loading) {
- return (
- <div className="bg-[#FFFFFF] text-[#1A2E30] min-h-screen flex items-center justify-center">
- <Loader2 className="w-8 h-8 animate-spin text-[#6CC6C9]" />
+ const reset=()=>{setAnswers({});setResults([]);setStep(questions.length?1:0)};
+ if(loading)return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#6CC6C9]"/></div>;
+ const current=questions[step-1];
+ return <div className="bg-white text-[#1A2E30] min-h-screen py-12" dir={language==='ar'?'rtl':'ltr'}>
+  <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-8">
+   <div className="text-center space-y-3">
+    {settings?.badge_ar||settings?.badge_en?<span className="inline-flex bg-[#E8F2F2] text-[#0E5257] text-xs font-bold px-3.5 py-1 rounded-full">{language==='ar'?settings?.badge_ar:settings?.badge_en}</span>:null}
+    <h1 className="text-3xl sm:text-5xl font-extrabold font-serif">{language==='ar'?settings?.title_ar:settings?.title_en}</h1>
+    <p className="text-sm text-[#4A6869] max-w-2xl mx-auto">{language==='ar'?settings?.subtitle_ar:settings?.subtitle_en}</p>
+   </div>
+   {questions.length>0&&step<=questions.length&&<><div className="flex items-center justify-between max-w-2xl mx-auto text-[10px] sm:text-xs font-bold text-[#6B8C8E] gap-1">{questions.map((q,i)=><span key={q.id} className={step>=i+1?'text-[#0E5257]':''}>{i+1}</span>)}</div><div className="w-full max-w-2xl mx-auto h-2 bg-[#F0FAFA] rounded-full overflow-hidden"><div className="h-full bg-[#6CC6C9] transition-all duration-500" style={{width:`${Math.min(100,(step/questions.length)*100)}%`}}/></div></>}
+   {current&&<div className="max-w-3xl mx-auto p-6 sm:p-9 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-7">
+    <div className="text-center"><span className="text-[10px] font-bold text-[#6B8C8E]">{t(`السؤال ${step} من ${questions.length}`,`Question ${step} of ${questions.length}`)}</span><h2 className="font-extrabold text-xl sm:text-2xl mt-2">{language==='ar'?current.title_ar:current.title_en}</h2></div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{current.options.map(o=><button key={o.id} type="button" onClick={()=>selectAnswer(current,o.id)} className={`p-5 rounded-2xl border bg-white text-start transition hover:-translate-y-0.5 hover:border-[#0E5257] hover:shadow-md flex items-center gap-4 ${answers[current.id]===o.id?'border-[#0E5257] ring-2 ring-[#6CC6C9]/40':''}`}>{o.image_url?<img src={o.image_url} className="w-12 h-12 rounded-xl object-cover" alt=""/>:<span className="text-3xl">{o.icon||'☕'}</span>}<span className="font-bold">{language==='ar'?o.label_ar:o.label_en}</span>{answers[current.id]===o.id&&<CheckCircle2 className="ms-auto w-5 h-5 text-[#0E5257]"/>}</button>)}</div>
+    {step>1&&<button onClick={()=>setStep(step-1)} className="text-xs text-[#6B8C8E] hover:underline">← {t('السابق','Back')}</button>}
+   </div>}
+   {scoring&&<div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-[#6CC6C9]"/><p className="mt-3 text-sm font-bold">{t('نطابق إجاباتك مع ملفات القهوة...','Matching your answers with coffee profiles...')}</p></div>}
+   {step===questions.length+1&&!scoring&&<div className="space-y-7">
+    <div className="p-6 rounded-3xl bg-[#F0FAFA] border border-[#6CC6C9]/50 flex flex-col sm:flex-row items-center justify-between gap-4"><div><h3 className="font-extrabold text-xl text-[#0E5257]">🎉 {t('نتيجتك حسب تفضيلاتك','Your matches based on your preferences')}</h3><p className="text-xs text-[#6B8C8E] mt-1">{t('تم ترتيب القهوة من الأعلى تطابقاً إلى الأقل، اعتماداً على بيانات كل منتج في المتجر.','Coffees are ranked by match score using each product profile in the store.')}</p></div><button onClick={reset} className="bg-[#0E5257] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><RotateCcw className="w-3.5 h-3.5"/>{t('إعادة الاختبار','Retake')}</button></div>
+    {results.length?<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">{results.slice(0,settings?.results_count||3).map((prod)=><div key={prod.id} className="relative"><div className="absolute z-10 top-3 end-3 px-2.5 py-1 rounded-full bg-[#0E5257] text-white text-[10px] font-black shadow">{prod.match_score}% {t('تطابق','match')}</div><ProductCard product={prod} onNavigate={onNavigate}/></div>)}</div>:<div className="text-center p-10 rounded-3xl border border-[#E8F2F2]"><p className="font-bold">{t('لا توجد قهوة مهيأة للترشيح حالياً.','No coffees are currently configured for recommendations.')}</p><p className="text-xs text-[#6B8C8E] mt-2">{t('يجب تفعيل «إظهار في نتائج الاختبار» وإكمال ملف القهوة من لوحة الإدارة.','Enable “Include in Coffee Finder” and complete the coffee profile in admin.')}</p></div>}
+   </div>}
+  </div>
  </div>
- );
- }
-
- const currentQuestion = questions[step - 1];
-
- return (
- <div className="bg-[#FFFFFF] text-[#1A2E30] min-h-screen py-12">
- <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
-
- {/* Header Title */}
- <div className="text-center space-y-3">
- {settings && (
- <span className="inline-flex items-center gap-1.5 bg-[#0E5257]/30 border border-[#6CC6C9]/50 text-[#6CC6C9] text-xs font-bold px-3.5 py-1 rounded-full uppercase">
- {language === 'ar' ? settings.badge_ar : settings.badge_en}
- </span>
- )}
-
- <h1 className="text-3xl sm:text-5xl font-extrabold text-[#1A2E30] font-serif">
- {language === 'ar' ? settings?.title_ar : settings?.title_en}
- </h1>
-
- {settings && (
- <p className="text-xs sm:text-sm text-[#4A6869] max-w-lg mx-auto">
- {language === 'ar' ? settings.subtitle_ar : settings.subtitle_en}
- </p>
- )}
- </div>
-
- {questions.length > 0 && (
- <>
- {/* Progress Bar */}
- <div className="flex items-center justify-between max-w-md mx-auto text-xs font-bold text-[#6B8C8E]">
- {questions.map((q, i) => (
- <span key={q.id} className={step >= i + 1 ? 'text-[#6CC6C9]' : ''}>
- {i + 1}. {language === 'ar' ? q.title_ar.replace(/^.*?: /, '') : q.title_en.replace(/^.*?: /, '')}
- </span>
- ))}
- </div>
-
- <div className="w-full bg-[#F0FAFA] h-2 rounded-full overflow-hidden border border-[#E8F2F2] max-w-md mx-auto">
- <div
- className="bg-[#6CC6C9] h-full transition-all duration-300"
- style={{ width: `${(step / (questions.length + 1)) * 100}%` }}
- />
- </div>
- </>
- )}
-
- {/* Questions */}
- {currentQuestion && (
- <div className="p-8 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-6 animate-fade-in" key={currentQuestion.id}>
- <h3 className="font-extrabold text-lg text-[#1A2E30] text-center">
- {language === 'ar' ? currentQuestion.title_ar : currentQuestion.title_en}
- </h3>
-
- <div className="grid gap-4"
- style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}
- >
- {currentQuestion.options.map(item => (
- <button
- key={item.id}
- onClick={() => selectAnswer(currentQuestion.id, item.id)}
- className={`p-5 rounded-2xl border text-center sm:text-start transition cursor-pointer flex items-center gap-4 ${answers[currentQuestion.id] === item.id
- ? 'bg-[#0E5257] text-white border-[#6CC6C9]'
- : 'bg-[#FFFFFF] text-[#4A6869] border-[#E8F2F2] hover:border-[#0E5257]'
- }`}
- >
- {item.image_url ? (
- <img src={item.image_url} alt="" className="w-8 h-8 object-contain flex-shrink-0 rounded" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
- ) : item.icon ? (
- <span className="text-2xl flex-shrink-0">{item.icon}</span>
- ) : null}
- <span className="font-bold text-sm">
- {language === 'ar' ? item.label_ar : item.label_en}
- </span>
- </button>
- ))}
- </div>
-
- {step > 1 && (
- <div className="flex justify-between">
- <button
- onClick={() => setStep(step - 1)}
- className="text-xs text-[#6B8C8E] hover:underline cursor-pointer"
- >
- ← {t('السابق', 'Back')}
- </button>
- </div>
- )}
- </div>
- )}
-
- {/* Results */}
- {step === questions.length + 1 && (
- <div className="space-y-6 animate-fade-in">
- <div className="p-6 rounded-3xl bg-[#F0FAFA] border border-[#6CC6C9]/50 flex items-center justify-between">
- <div>
- <h3 className="font-extrabold text-lg text-[#6CC6C9]">
- 🎉 {t('المحصول المثالي المطابق لذوقك 100%', 'Your Perfect Crop Matches!')}
- </h3>
- <p className="text-xs text-[#6B8C8E] mt-1">
- {t('استناداً على معايير اختيارك تم ترتيب النتائج الأكثر ملاءمة لك.', 'Here are the top specialty micro-lots matching your brew profile.')}
- </p>
- </div>
-
- <button
- onClick={resetQuiz}
- className="bg-[#E8F2F2] hover:bg-[#0E5257] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
- >
- <RotateCcw className="w-3.5 h-3.5" />
- <span>{t('إعادة الاختبار', 'Retake Quiz')}</span>
- </button>
- </div>
-
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
- {matchedProducts.slice(0, settings?.results_count || 3).map(prod => (
- <ProductCard
- key={prod.id}
- product={prod}
- onNavigate={onNavigate}
- />
- ))}
- </div>
- </div>
- )}
-
- </div>
- </div>
- );
 };
-
 export default CoffeeFinderPage;

@@ -1,472 +1,67 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { useLanguage } from '../../context/LanguageContext';
-import { QuizQuestion, QuizConfig } from '../../types';
-import { Plus, Trash2, ArrowUp, ArrowDown, Save, AlertCircle, Check, Eye, Image as ImageIcon } from 'lucide-react';
+import React,{useEffect,useState} from 'react';
+import {ArrowDown,ArrowUp,Check,Eye,Plus,Save,Trash2,ChevronDown,ChevronUp} from 'lucide-react';
+import {useLanguage} from '../../context/LanguageContext';
+import {QuizConfig,QuizQuestion,QuizOption,QuizMatchField,QuizPreferences,GrindType,CoffeeRoastLevel} from '../../types';
 
-// Fields an admin can score a product against in quiz rules.
-// Each entry carries a user-friendly bilingual label so admins understand
-// exactly which product attribute the rule matches.
-const QUIZ_FIELDS: { value: string; label_ar: string; label_en: string }[] = [
- { value: 'name_ar', label_ar: 'الاسم (عربي)', label_en: 'Name (AR)' },
- { value: 'name_en', label_ar: 'الاسم (إنجليزي)', label_en: 'Name (EN)' },
- { value: 'subtitle_ar', label_ar: 'العنوان الفرعي (عربي)', label_en: 'Subtitle (AR)' },
- { value: 'subtitle_en', label_ar: 'العنوان الفرعي (إنجليزي)', label_en: 'Subtitle (EN)' },
- { value: 'description_ar', label_ar: 'الوصف (عربي)', label_en: 'Description (AR)' },
- { value: 'description_en', label_ar: 'الوصف (إنجليزي)', label_en: 'Description (EN)' },
- { value: 'tasting_notes_ar', label_ar: 'نكهات التذوق (عربي)', label_en: 'Tasting Notes (AR)' },
- { value: 'tasting_notes_en', label_ar: 'نكهات التذوق (إنجليزي)', label_en: 'Tasting Notes (EN)' },
- { value: 'process_ar', label_ar: 'طريقة المعالجة (عربي)', label_en: 'Process (AR)' },
- { value: 'process_en', label_ar: 'طريقة المعالجة (إنجليزي)', label_en: 'Process (EN)' },
- { value: 'roast_level_ar', label_ar: 'درجة التحميص (عربي)', label_en: 'Roast Level (AR)' },
- { value: 'roast_level_en', label_ar: 'درجة التحميص (إنجليزي)', label_en: 'Roast Level (EN)' },
- { value: 'origin_country_ar', label_ar: 'بلد المنشأ (عربي)', label_en: 'Origin Country (AR)' },
- { value: 'origin_country_en', label_ar: 'بلد المنشأ (إنجليزي)', label_en: 'Origin Country (EN)' },
- { value: 'region_ar', label_ar: 'المنطقة المزروعة (عربي)', label_en: 'Growing Region (AR)' },
- { value: 'region_en', label_ar: 'المنطقة المزروعة (إنجليزي)', label_en: 'Growing Region (EN)' },
- { value: 'variety', label_ar: 'نوع البن (Variety)', label_en: 'Coffee Variety' },
- { value: 'altitude', label_ar: 'الارتفاع (Altitude)', label_en: 'Altitude' },
- { value: 'category_slug', label_ar: 'الفئة (Category)', label_en: 'Category' },
- { value: 'subcategory_id', label_ar: 'الفئة الفرعية', label_en: 'Subcategory' },
- { value: 'sku', label_ar: 'رمز المنتج (SKU)', label_en: 'Product SKU' }
+const FIELD_OPTIONS:{key:QuizMatchField;ar:string;en:string}[]=[
+ {key:'brew_method',ar:'طريقة التحضير',en:'Brew method'},
+ {key:'roast_level',ar:'درجة التحميص',en:'Roast level'},
+ {key:'flavor',ar:'النكهات والإيحاءات',en:'Flavor notes'},
+ {key:'strength',ar:'قوة القهوة',en:'Strength'},
+ {key:'acidity',ar:'الحموضة',en:'Acidity'},
+ {key:'sweetness',ar:'الحلاوة',en:'Sweetness'},
+ {key:'body',ar:'القوام',en:'Body'},
+ {key:'balance',ar:'التوازن',en:'Balance'},
+ {key:'bitterness',ar:'المرارة',en:'Bitterness'},
+ {key:'caffeine',ar:'الكافيين',en:'Caffeine'}
 ];
-
-export const AdminQuizManager: React.FC = () => {
- const { t, language } = useLanguage();
- const [config, setConfig] = useState<QuizConfig | null>(null);
- const [saving, setSaving] = useState(false);
- const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
- const [errors, setErrors] = useState<string[]>([]);
- const dragItem = useRef<number | null>(null);
-
- useEffect(() => {
- fetch('/api/admin/quiz')
- .then(r => r.json())
- .then(data => {
- if (data.questions) {
- setConfig(data);
- } else {
- setConfig({ settings: { base_score: 70, results_count: 3, badge_ar: '', badge_en: '', title_ar: '', title_en: '', subtitle_ar: '', subtitle_en: '' }, questions: data });
- }
- })
- .catch(() => setMessage({ type: 'error', text: 'Failed to load quiz config' }));
- }, []);
-
- const validate = (): boolean => {
- const errs: string[] = [];
- if (!config) return false;
- if (config.questions.length === 0) errs.push('At least one question is required');
- config.questions.forEach((q, i) => {
- if (!q.title_ar.trim() || !q.title_en.trim()) errs.push(`Question ${i + 1}: Arabic and English titles required`);
- if (q.options.length === 0) errs.push(`Question ${i + 1}: At least one option required`);
- q.options.forEach((o, j) => {
- if (!o.label_ar.trim() || !o.label_en.trim()) errs.push(`Q${i + 1} Option ${j + 1}: Arabic and English labels required`);
- });
- });
- if (config.settings.results_count < 1) errs.push('Results count must be at least 1');
- if (config.settings.base_score < 0) errs.push('Base score must be 0 or more');
- setErrors(errs);
- return errs.length === 0;
+const BREWS:{v:GrindType;ar:string;en:string}[]=[
+ {v:'espresso',ar:'إسبريسو',en:'Espresso'},{v:'v60',ar:'V60 / فلتر',en:'V60 / Filter'},
+ {v:'french_press',ar:'فرنش بريس',en:'French Press'},{v:'aeropress',ar:'أيروبريس',en:'Aeropress'},
+ {v:'cold_brew',ar:'كولد برو',en:'Cold Brew'},{v:'turkish',ar:'تركية / سعودية',en:'Turkish / Saudi'}
+];
+const ROASTS:{v:CoffeeRoastLevel;ar:string;en:string}[]=[
+ {v:'light',ar:'فاتح',en:'Light'},{v:'medium',ar:'متوسط',en:'Medium'},{v:'dark',ar:'غامق',en:'Dark'}
+];
+const emptyPrefs=():QuizPreferences=>({fields:[],brew_methods:[],roast_levels:[],flavors:[]});
+const makeOption=(ar='',en='',icon='☕️'):QuizOption=>({id:`opt-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,label_ar:ar,label_en:en,icon,preferences:emptyPrefs()});
+const makeQuestion=(i:number):QuizQuestion=>({id:`q-${Date.now()}-${i}`,title_ar:'',title_en:'',sort_order:i+1,is_enabled:true,options:[makeOption()]});
+const cleanConfig=(raw:any):QuizConfig=>{
+ const qs=Array.isArray(raw?.questions)?raw.questions:Array.isArray(raw)?raw:[];
+ return {settings:{results_count:3,badge_ar:'مستشار القهوة',badge_en:'Coffee Finder',title_ar:'اكتشف قهوتك المثالية',title_en:'Find Your Perfect Coffee',subtitle_ar:'أجب عن الأسئلة وسنطابق تفضيلاتك مع ملف كل قهوة في المتجر.',subtitle_en:'Answer a few questions and we will match your preferences to each coffee profile.',...(raw?.settings||{})},
+ questions:qs.map((q:any,i:number)=>({...q,sort_order:i+1,options:(q.options||[]).map((o:any)=>({...o,preferences:o.preferences||emptyPrefs()}))}))
  };
-
- const handleSave = async () => {
- if (!validate() || !config) return;
- setSaving(true);
- try {
- const res = await fetch('/api/admin/quiz', {
- method: 'PUT',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify(config)
- });
- if (!res.ok) throw new Error('Save failed');
- setMessage({ type: 'success', text: 'Saved successfully' });
- setTimeout(() => setMessage(null), 2000);
- } catch {
- setMessage({ type: 'error', text: 'Failed to save' });
- }
- setSaving(false);
- };
-
- const addQuestion = () => {
- if (!config) return;
- const nq: QuizQuestion = {
- id: `q-${Date.now()}`,
- title_ar: '',
- title_en: '',
- sort_order: config.questions.length + 1,
- is_enabled: true,
- options: []
- };
- setConfig({ ...config, questions: [...config.questions, nq] });
- };
-
- const removeQuestion = (qi: number) => {
- if (!config) return;
- setConfig({ ...config, questions: config.questions.filter((_, i) => i !== qi) });
- };
-
- const updateQuestion = (qi: number, field: string, value: any) => {
- if (!config) return;
- const qs = [...config.questions];
- (qs[qi] as any)[field] = value;
- setConfig({ ...config, questions: qs });
- };
-
- const moveQuestion = (qi: number, dir: -1 | 1) => {
- if (!config) return;
- const qs = [...config.questions];
- const target = qi + dir;
- if (target < 0 || target >= qs.length) return;
- [qs[qi], qs[target]] = [qs[target], qs[qi]];
- qs.forEach((q, i) => q.sort_order = i + 1);
- setConfig({ ...config, questions: qs });
- };
-
- const addOption = (qi: number) => {
- if (!config) return;
- const qs = [...config.questions];
- qs[qi].options.push({ id: `opt-${Date.now()}`, label_ar: '', label_en: '', icon: '', score_rules: [] });
- setConfig({ ...config, questions: qs });
- };
-
- const removeOption = (qi: number, oi: number) => {
- if (!config) return;
- const qs = [...config.questions];
- qs[qi].options = qs[qi].options.filter((_, i) => i !== oi);
- setConfig({ ...config, questions: qs });
- };
-
- const updateOption = (qi: number, oi: number, field: string, value: any) => {
- if (!config) return;
- const qs = [...config.questions];
- (qs[qi].options[oi] as any)[field] = value;
- setConfig({ ...config, questions: qs });
- };
-
- const moveOption = (qi: number, oi: number, dir: -1 | 1) => {
- if (!config) return;
- const qs = [...config.questions];
- const opts = [...qs[qi].options];
- const target = oi + dir;
- if (target < 0 || target >= opts.length) return;
- [opts[oi], opts[target]] = [opts[target], opts[oi]];
- qs[qi].options = opts;
- setConfig({ ...config, questions: qs });
- };
-
- const addRule = (qi: number, oi: number) => {
- if (!config) return;
- const qs = [...config.questions];
- qs[qi].options[oi].score_rules.push({ field: '', operator: 'includes', value: '', points: 15 });
- setConfig({ ...config, questions: qs });
- };
-
- const removeRule = (qi: number, oi: number, ri: number) => {
- if (!config) return;
- const qs = [...config.questions];
- qs[qi].options[oi].score_rules = qs[qi].options[oi].score_rules.filter((_, i) => i !== ri);
- setConfig({ ...config, questions: qs });
- };
-
- const updateRule = (qi: number, oi: number, ri: number, field: string, value: any) => {
- if (!config) return;
- const qs = [...config.questions];
- (qs[qi].options[oi].score_rules[ri] as any)[field] = value;
- setConfig({ ...config, questions: qs });
- };
-
- const updateSettings = (field: string, value: any) => {
- if (!config) return;
- setConfig({ ...config, settings: { ...config.settings, [field]: value } });
- };
-
- if (!config) return null;
-
- return (
- <div className="space-y-6">
- <div className="flex items-center justify-between">
- <h2 className="text-xl font-extrabold text-[#1A2E30]">
- {t('إدارة اختبار القهوة', 'Coffee Quiz Manager')}
- </h2>
- <div className="flex items-center gap-3">
- <button
- onClick={() => window.open('/coffee-finder', '_blank')}
- className="bg-[#E8F2F2] hover:bg-[#1A2E30] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-[#1A2E30]"
- >
- <Eye className="w-3.5 h-3.5" />
- {t('معاينة', 'Preview')}
- </button>
- <button
- onClick={addQuestion}
- className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
- >
- <Plus className="w-3.5 h-3.5" />
- {t('إضافة سؤال', 'Add Question')}
- </button>
- <button
- onClick={handleSave}
- disabled={saving}
- className="bg-[#6CC6C9] hover:bg-[#4FA8AD] text-black px-5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
- >
- <Save className="w-3.5 h-3.5" />
- {saving ? t('جاري الحفظ...', 'Saving...') : t('حفظ الكل', 'Save All')}
- </button>
- </div>
- </div>
-
- {message && (
- <div className={`flex items-center gap-2 text-xs font-bold p-3 rounded-xl ${message.type === 'success' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-red-600/20 text-red-400'}`}>
- {message.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
- {message.text}
- </div>
- )}
-
- {errors.length > 0 && (
- <div className="flex flex-col gap-1 bg-red-600/20 border border-red-500/30 p-3 rounded-xl">
- {errors.map((e, i) => (
- <div key={i} className="flex items-center gap-2 text-xs text-red-400 font-bold">
- <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
- {e}
- </div>
- ))}
- </div>
- )}
-
- {/* Settings Section */}
- <div className="p-5 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-4">
- <h3 className="text-sm font-extrabold text-[#6CC6C9] border-b border-[#E8F2F2] pb-2">
- {t('إعدادات الاختبار', 'Quiz Settings')}
- </h3>
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
- <div>
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('النتيجة الأساسية', 'Base Score')}</label>
- <input type="number" className=" w-full"
- value={config.settings.base_score}
- onChange={e => updateSettings('base_score', parseInt(e.target.value) || 0)}
- />
- </div>
- <div>
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('عدد النتائج', 'Results Count')}</label>
- <input type="number" className=" w-full"
- value={config.settings.results_count}
- onChange={e => updateSettings('results_count', parseInt(e.target.value) || 3)}
- />
- </div>
- </div>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- <div>
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('الشارة (عربي)', 'Badge (AR)')}</label>
- <input className=" w-full" dir="rtl"
- value={config.settings.badge_ar}
- onChange={e => updateSettings('badge_ar', e.target.value)}
- />
- </div>
- <div>
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('الشارة (إنجليزي)', 'Badge (EN)')}</label>
- <input className=" w-full"
- value={config.settings.badge_en}
- onChange={e => updateSettings('badge_en', e.target.value)}
- />
- </div>
- <div>
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('العنوان (عربي)', 'Title (AR)')}</label>
- <input className=" w-full" dir="rtl"
- value={config.settings.title_ar}
- onChange={e => updateSettings('title_ar', e.target.value)}
- />
- </div>
- <div>
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('العنوان (إنجليزي)', 'Title (EN)')}</label>
- <input className=" w-full"
- value={config.settings.title_en}
- onChange={e => updateSettings('title_en', e.target.value)}
- />
- </div>
- <div className="sm:col-span-2">
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('الوصف (عربي)', 'Subtitle (AR)')}</label>
- <input className=" w-full" dir="rtl"
- value={config.settings.subtitle_ar}
- onChange={e => updateSettings('subtitle_ar', e.target.value)}
- />
- </div>
- <div className="sm:col-span-2">
- <label className="text-[10px] font-bold text-[#6B8C8E] block mb-1">{t('الوصف (إنجليزي)', 'Subtitle (EN)')}</label>
- <input className=" w-full"
- value={config.settings.subtitle_en}
- onChange={e => updateSettings('subtitle_en', e.target.value)}
- />
- </div>
- </div>
- </div>
-
- {config.questions.length === 0 && (
- <div className="p-8 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] text-center text-[#6B8C8E] text-sm">
- {t('لا توجد أسئلة بعد. أضف سؤالاً للبدء.', 'No questions yet. Add a question to start.')}
- </div>
- )}
-
- {config.questions.map((q, qi) => (
- <div key={q.id} className="p-5 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-4">
- <div className="flex items-center justify-between gap-3">
- <div className="flex items-center gap-2 flex-1">
- <div className="flex flex-col gap-0.5">
- <button onClick={() => moveQuestion(qi, -1)} className="p-0.5 rounded hover:bg-[#E8F2F2] text-[#6B8C8E] hover:text-[#6CC6C9] transition cursor-pointer disabled:opacity-30" disabled={qi === 0}>
- <ArrowUp className="w-3 h-3" />
- </button>
- <button onClick={() => moveQuestion(qi, 1)} className="p-0.5 rounded hover:bg-[#E8F2F2] text-[#6B8C8E] hover:text-[#6CC6C9] transition cursor-pointer disabled:opacity-30" disabled={qi === config.questions.length - 1}>
- <ArrowDown className="w-3 h-3" />
- </button>
- </div>
- <span className="text-[10px] font-bold text-[#6CC6C9] bg-[#E8F2F2] px-2 py-0.5 rounded flex-shrink-0">
- Q{qi + 1}
- </span>
- <input
- className=" w-full max-w-[200px]"
- placeholder="العنوان بالعربية"
- value={q.title_ar}
- onChange={e => updateQuestion(qi, 'title_ar', e.target.value)}
- dir="rtl"
- />
- <input
- className=" w-full max-w-[200px]"
- placeholder="Title (English)"
- value={q.title_en}
- onChange={e => updateQuestion(qi, 'title_en', e.target.value)}
- />
- </div>
- <div className="flex items-center gap-2">
- <label className="flex items-center gap-1.5 text-[10px] text-[#6B8C8E] cursor-pointer">
- <input
- type="checkbox"
- checked={q.is_enabled}
- onChange={e => updateQuestion(qi, 'is_enabled', e.target.checked)}
- className="accent-[#6CC6C9]"
- />
- {t('مفعل', 'Enabled')}
- </label>
- <button onClick={() => removeQuestion(qi)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer">
- <Trash2 className="w-3.5 h-3.5" />
- </button>
- </div>
- </div>
-
- <div className="space-y-3">
- <div className="flex items-center justify-between">
- <span className="text-[10px] font-bold text-[#6B8C8E] uppercase tracking-wider">
- {t('الخيارات', 'Options')}
- </span>
- <button onClick={() => addOption(qi)} className="text-[10px] font-bold text-[#6CC6C9] hover:underline cursor-pointer">
- + {t('إضافة خيار', 'Add Option')}
- </button>
- </div>
-
- {q.options.map((o, oi) => (
- <div key={o.id} className="p-3 rounded-2xl bg-[#FFFFFF] border border-[#E8F2F2] space-y-2">
- <div className="flex items-center gap-2 flex-wrap">
- <div className="flex flex-col gap-0.5">
- <button onClick={() => moveOption(qi, oi, -1)} className="p-0.5 rounded hover: transition cursor-pointer disabled:opacity-30" disabled={oi === 0}>
- <ArrowUp className="w-2.5 h-2.5" />
- </button>
- <button onClick={() => moveOption(qi, oi, 1)} className="p-0.5 rounded hover: transition cursor-pointer disabled:opacity-30" disabled={oi === q.options.length - 1}>
- <ArrowDown className="w-2.5 h-2.5" />
- </button>
- </div>
- <input
- className=" w-10 text-center"
- placeholder="icon"
- value={o.icon}
- onChange={e => updateOption(qi, oi, 'icon', e.target.value)}
- />
- <div className="relative flex-1 min-w-[100px]">
- <input
- className=" w-full pl-7"
- placeholder={t('رابط الصورة (اختياري)', 'Image URL (optional)')}
- value={o.image_url || ''}
- onChange={e => updateOption(qi, oi, 'image_url', e.target.value)}
- />
- <ImageIcon className="w-3.5 h-3.5 text-[#6B8C8E] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
- </div>
- <input
- className=" flex-1 min-w-[120px]"
- placeholder="العربية"
- value={o.label_ar}
- onChange={e => updateOption(qi, oi, 'label_ar', e.target.value)}
- dir="rtl"
- />
- <input
- className=" flex-1 min-w-[120px]"
- placeholder="English"
- value={o.label_en}
- onChange={e => updateOption(qi, oi, 'label_en', e.target.value)}
- />
- <button onClick={() => removeOption(qi, oi)} className="p-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer">
- <Trash2 className="w-3 h-3" />
- </button>
- </div>
-
- <div className="pl-3 border-l-2 border-[#E8F2F2] space-y-1.5">
- <div className="flex items-center justify-between">
- <span className="text-[9px] font-bold text-[#6B8C8E] uppercase tracking-wider">
- {t('قواعد التصحيح', 'Scoring Rules')}
- </span>
- <button onClick={() => addRule(qi, oi)} className="text-[9px] font-bold text-emerald-400 hover:underline cursor-pointer">
- + {t('إضافة قاعدة', 'Add Rule')}
- </button>
- </div>
- {o.score_rules.map((r, ri) => (
- <div key={ri} className="flex items-center gap-1.5 flex-wrap">
- <select
- className=""
- value={r.field}
- onChange={e => updateRule(qi, oi, ri, 'field', e.target.value)}
- >
- <option value="">{t('اختر حقل', 'Select field')}</option>
- {QUIZ_FIELDS.map(f => (
- <option key={f.value} value={f.value}>
- {language === 'ar' ? f.label_ar : f.label_en}
- </option>
- ))}
- </select>
- <select
- className=""
- value={r.operator}
- onChange={e => updateRule(qi, oi, ri, 'operator', e.target.value)}
- >
- <option value="includes">includes</option>
- <option value="equals">equals</option>
- </select>
- <input
- className=" w-28"
- placeholder={t('القيمة', 'Value')}
- value={r.value}
- onChange={e => updateRule(qi, oi, ri, 'value', e.target.value)}
- />
- <div className="flex items-center gap-1">
- <input
- type="number"
- className=" w-14"
- value={r.points}
- onChange={e => updateRule(qi, oi, ri, 'points', parseInt(e.target.value) || 0)}
- />
- <span className="text-[9px] text-[#6B8C8E]">{t('نقطة', 'pts')}</span>
- </div>
- <button onClick={() => removeRule(qi, oi, ri)} className="p-0.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer">
- <Trash2 className="w-2.5 h-2.5" />
- </button>
- </div>
- ))}
- {o.score_rules.length === 0 && (
- <p className="text-[9px] text-[#6B8C8E] italic">
- {t('لا توجد قواعد (لن يكسب هذا الخيار نقاطاً)', 'No rules (option gives no points)')}
- </p>
- )}
- </div>
- </div>
- ))}
- </div>
- </div>
- ))}
- </div>
- );
 };
-
-export default AdminQuizManager;
+const arVal=(v:number)=>v===1?'خفيفة جداً':v===2?'خفيفة':v===3?'متوسطة':v===4?'قوية':'قوية جداً';
+export default function AdminQuizManager(){
+ const {t,language}=useLanguage(); const [c,setC]=useState<QuizConfig|null>(null); const [saving,setSaving]=useState(false); const [open,setOpen]=useState<number|null>(0); const [msg,setMsg]=useState('');
+ useEffect(()=>{fetch('/api/admin/quiz').then(r=>r.json()).then(d=>setC(cleanConfig(d))).catch(()=>setC(cleanConfig(null)))},[]);
+ if(!c)return <div className="p-10 text-center text-[#6B8C8E]">{t('جاري تحميل اختبار القهوة...','Loading Coffee Finder...')}</div>;
+ const upd=(i:number,k:keyof QuizQuestion,v:any)=>{const qs=[...c.questions];qs[i]={...qs[i],[k]:v};setC({...c,questions:qs});};
+ const updOpt=(qi:number,oi:number,k:keyof QuizOption,v:any)=>{const qs=[...c.questions],os=[...qs[qi].options];os[oi]={...os[oi],[k]:v};qs[qi]={...qs[qi],options:os};setC({...c,questions:qs});};
+ const prefs=(qi:number,oi:number):QuizPreferences=>c.questions[qi].options[oi].preferences||emptyPrefs();
+ const updPref=(qi:number,oi:number,patch:Partial<QuizPreferences>)=>updOpt(qi,oi,'preferences',{...prefs(qi,oi),...patch});
+ const toggleField=(qi:number,oi:number,field:QuizMatchField)=>{const p=prefs(qi,oi);const fields=p.fields.includes(field)?p.fields.filter(x=>x!==field):[...p.fields,field];updPref(qi,oi,{fields});};
+ const addQ=()=>{const q=makeQuestion(c.questions.length);setC({...c,questions:[...c.questions,q]});setOpen(c.questions.length)};
+ const addOption=(qi:number)=>upd(qi,'options',[...c.questions[qi].options,makeOption()]);
+ const save=async()=>{setSaving(true);setMsg('');try{const payload={...c,questions:c.questions.map((q,i)=>({...q,sort_order:i+1,options:q.options.map(o=>{const {score_rules:_legacy,...clean}=o as any;return {...clean,preferences:o.preferences||emptyPrefs()};})}))};const r=await fetch('/api/admin/quiz',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!r.ok)throw new Error();setMsg(t('تم حفظ الاختبار بنجاح','Quiz saved successfully'));}catch{setMsg(t('تعذر حفظ الاختبار','Could not save quiz'))}finally{setSaving(false)}};
+ return <div className="space-y-6" dir={language==='ar'?'rtl':'ltr'}>
+  <div className="rounded-3xl bg-gradient-to-br from-[#0E5257] to-[#2B7D82] p-6 text-white flex flex-col md:flex-row gap-5 items-center"><div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl">☕</div><div className="flex-1"><div className="text-[10px] uppercase tracking-[.2em] text-white/60">Coffee Finder</div><h2 className="text-2xl font-black">{t('اختبار ترشيح القهوة','Coffee Finder Quiz')}</h2><p className="text-sm text-white/80 mt-1">{t('الأسئلة والاختيارات هنا فقط. لكل اختيار تحدد تفضيلاته من قوائم واضحة، والنظام يطابقها تلقائياً مع ملف القهوة.','Create clear customer questions and choose the preferences represented by each answer. Matching is automatic.')}</p></div><button onClick={()=>window.open('/coffee-finder','_blank')} className="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-xs font-bold flex gap-2"><Eye className="w-4 h-4"/>{t('معاينة الاختبار','Preview Quiz')}</button></div>
+  {msg&&<div className="rounded-2xl bg-[#F0FAFA] border border-[#DCEBEC] p-3 text-xs font-bold flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500"/>{msg}</div>}
+  <section className="rounded-3xl bg-white border border-[#E8F2F2] p-5 space-y-4"><div className="flex items-center justify-between"><div><h3 className="font-black">{t('أسئلة الاختبار','Quiz questions')}</h3><p className="text-[11px] text-[#6B8C8E]">{t('لا يوجد كود أو قواعد أو JSON. فقط سؤال، اختيارات، وتفضيلات واضحة لكل اختيار.','No code, rules, or JSON. Just questions, answers, and clear preferences.')}</p></div><button onClick={addQ} className="px-3 py-2 rounded-xl bg-[#0E5257] text-white text-xs font-bold"><Plus className="w-3 h-3 inline"/> {t('إضافة سؤال','Add question')}</button></div>
+  <div className="space-y-3">{c.questions.map((q,qi)=><div key={q.id} className="rounded-2xl border border-[#E8F2F2] overflow-hidden"><div className="p-4 bg-[#F9FCFC] flex items-center gap-3"><span className="w-8 h-8 rounded-xl bg-[#E8F2F2] flex items-center justify-center font-black text-xs text-[#0E5257]">{qi+1}</span><div className="flex-1"><div className="font-bold text-sm">{q.title_ar||t('سؤال بدون عنوان','Untitled question')}</div><div className="text-[10px] text-[#6B8C8E]">{q.options.length} {t('اختيارات','answers')}</div></div><button onClick={()=>setOpen(open===qi?null:qi)} className="p-2 rounded-xl">{open===qi?<ChevronUp className="w-4 h-4"/>:<ChevronDown className="w-4 h-4"/>}</button><button onClick={()=>setC({...c,questions:c.questions.filter((_,i)=>i!==qi)})} className="p-2 text-red-500"><Trash2 className="w-4 h-4"/></button></div>
+  {open===qi&&<div className="p-4 space-y-5"><div className="grid md:grid-cols-2 gap-3"><label className="text-xs font-bold">{t('السؤال بالعربي','Question in Arabic')}<input value={q.title_ar} onChange={e=>upd(qi,'title_ar',e.target.value)} className="w-full mt-1" dir="rtl"/></label><label className="text-xs font-bold">English<input value={q.title_en} onChange={e=>upd(qi,'title_en',e.target.value)} className="w-full mt-1"/></label></div><label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={q.is_enabled} onChange={e=>upd(qi,'is_enabled',e.target.checked)}/>{t('السؤال ظاهر للعملاء','Show to customers')}</label>
+  <div className="space-y-3">{q.options.map((o,oi)=>{const p=prefs(qi,oi);return <div key={o.id} className="rounded-2xl border border-[#E8F2F2] p-4 bg-[#FBFEFE] space-y-4"><div className="flex gap-2 items-center"><input value={o.icon||''} onChange={e=>updOpt(qi,oi,'icon',e.target.value)} className="w-12 text-center" placeholder="☕"/><input value={o.label_ar} onChange={e=>updOpt(qi,oi,'label_ar',e.target.value)} placeholder={t('نص الاختيار بالعربي','Answer in Arabic')} className="flex-1" dir="rtl"/><input value={o.label_en} onChange={e=>updOpt(qi,oi,'label_en',e.target.value)} placeholder="Answer in English" className="flex-1"/><button onClick={()=>upd(qi,'options',q.options.filter((_,i)=>i!==oi))} className="text-red-500 p-2"><Trash2 className="w-4 h-4"/></button></div>
+  <div><div className="text-xs font-black mb-2">{t('هذا الاختيار يعبّر عن:','This answer represents:')}</div><div className="flex flex-wrap gap-2">{FIELD_OPTIONS.map(f=><button type="button" key={f.key} onClick={()=>toggleField(qi,oi,f.key)} className={`px-3 py-1.5 rounded-lg text-[10px] border ${p.fields.includes(f.key)?'bg-[#0E5257] text-white border-[#0E5257]':'bg-white border-[#E8F2F2]'}`}>{language==='ar'?f.ar:f.en}</button>)}</div></div>
+  {p.fields.includes('brew_method')&&<div><div className="text-[10px] font-bold mb-1">{t('طرق التحضير','Brew methods')}</div><div className="flex flex-wrap gap-2">{BREWS.map(x=><button type="button" key={x.v} onClick={()=>updPref(qi,oi,{brew_methods:p.brew_methods.includes(x.v)?p.brew_methods.filter(v=>v!==x.v):[...p.brew_methods,x.v]})} className={`px-2.5 py-1 rounded-lg text-[10px] border ${p.brew_methods.includes(x.v)?'bg-[#6CC6C9] text-[#0E5257] border-[#6CC6C9]':'bg-white border-[#E8F2F2]'}`}>{language==='ar'?x.ar:x.en}</button>)}</div></div>}
+  {p.fields.includes('roast_level')&&<div><div className="text-[10px] font-bold mb-1">{t('درجة التحميص','Roast level')}</div><div className="flex gap-2">{ROASTS.map(x=><button type="button" key={x.v} onClick={()=>updPref(qi,oi,{roast_levels:p.roast_levels.includes(x.v)?p.roast_levels.filter(v=>v!==x.v):[...p.roast_levels,x.v]})} className={`px-3 py-1 rounded-lg text-[10px] border ${p.roast_levels.includes(x.v)?'bg-[#6CC6C9] text-[#0E5257] border-[#6CC6C9]':'bg-white border-[#E8F2F2]'}`}>{language==='ar'?x.ar:x.en}</button>)}</div></div>}
+  {p.fields.includes('flavor')&&<label className="text-[10px] font-bold">{t('النكهات المطابقة (افصل بينها بفواصل)','Matching flavor notes (comma separated)')}<input value={p.flavors.join(', ')} onChange={e=>updPref(qi,oi,{flavors:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})} className="w-full mt-1" placeholder={t('مثال: شوكولاتة، كراميل، مكسرات','Example: chocolate, caramel, nuts')}/></label>}
+  {(['strength','acidity','sweetness','body','balance','bitterness','caffeine'] as QuizMatchField[]).filter(f=>p.fields.includes(f)).length>0&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">{(['strength','acidity','sweetness','body','balance','bitterness','caffeine'] as QuizMatchField[]).filter(f=>p.fields.includes(f)).map(f=>{const val=(p as any)[f]||3;const label=FIELD_OPTIONS.find(x=>x.key===f);return <label key={f} className="text-[10px] font-bold">{language==='ar'?label?.ar:label?.en}<select value={val} onChange={e=>updPref(qi,oi,{[f]:Number(e.target.value)})} className="w-full mt-1">{[1,2,3,4,5].map(v=><option key={v} value={v}>{language==='ar'?`${v} / 5${f==='strength'?` — ${arVal(v)}`:''}`:`${v} / 5`}</option>)}</select></label>})}</div>}
+  <div className="text-[9px] text-[#6B8C8E]">{p.fields.length?t('تم تحديد خصائص هذا الاختيار. النظام سيحسب درجة التطابق مع كل قهوة بناءً عليها.','Preferences selected. The engine will calculate a match score against every coffee.') :t('اختر خاصية واحدة على الأقل لهذا الاختيار ليكون له تأثير في الترشيح.','Choose at least one preference so this answer affects recommendations.')}</div>
+  </div>})}</div>
+  <button onClick={()=>addOption(qi)} className="text-xs font-bold text-[#0E5257]">+ {t('إضافة اختيار','Add answer')}</button>
+  <div className="flex justify-between pt-2"><div className="flex gap-1"><button disabled={qi===0} onClick={()=>{const qs=[...c.questions];[qs[qi-1],qs[qi]]=[qs[qi],qs[qi-1]];setC({...c,questions:qs})}} className="p-2 rounded-lg bg-[#F0FAFA] disabled:opacity-30"><ArrowUp className="w-3 h-3"/></button><button disabled={qi===c.questions.length-1} onClick={()=>{const qs=[...c.questions];[qs[qi+1],qs[qi]]=[qs[qi],qs[qi+1]];setC({...c,questions:qs})}} className="p-2 rounded-lg bg-[#F0FAFA] disabled:opacity-30"><ArrowDown className="w-3 h-3"/></button></div></div></div>}</div>)}</div></section>
+  <section className="rounded-3xl bg-white border border-[#E8F2F2] p-5 space-y-3"><h3 className="font-black">{t('شكل النتيجة','Result display')}</h3><div className="grid md:grid-cols-3 gap-3"><label className="field-label">{t('عدد المنتجات المقترحة','Products shown')}<input type="number" min="1" max="6" value={c.settings.results_count} onChange={e=>setC({...c,settings:{...c.settings,results_count:Math.max(1,Math.min(6,Number(e.target.value)))}})}/></label><label className="field-label">{t('العنوان بالعربي','Arabic title')}<input value={c.settings.title_ar} onChange={e=>setC({...c,settings:{...c.settings,title_ar:e.target.value}})} dir="rtl"/></label><label className="field-label">English title<input value={c.settings.title_en} onChange={e=>setC({...c,settings:{...c.settings,title_en:e.target.value}})}/></label></div></section>
+  <div className="flex justify-end"><button onClick={save} disabled={saving} className="px-6 py-3 rounded-xl bg-[#6CC6C9] text-[#0E5257] text-xs font-black flex gap-2 items-center"><Save className="w-4 h-4"/>{saving?t('جاري الحفظ...','Saving...'):t('حفظ الاختبار','Save Quiz')}</button></div>
+ </div>
+}

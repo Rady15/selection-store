@@ -10,8 +10,10 @@ export interface CurrencyConfig {
 
 export type GrindType = 'beans' | 'v60' | 'espresso' | 'french_press' | 'aeropress' | 'cold_brew' | 'turkish';
 
+export type ProductUnitType = 'weight' | 'piece' | 'unit' | 'box' | 'liter' | 'meter' | 'custom';
+
 export interface ProductWeightOption {
- value: string; // e.g., "250g", "500g", "1kg", "10bags"
+ value: string; // e.g., "250g", "1kg", "1piece", "6box"
  label_ar: string;
  label_en: string;
  priceModifier: number; // e.g. 0 for 250g, 45 for 500g, 110 for 1kg
@@ -23,6 +25,24 @@ export interface FlavorProfile {
  sweetness: number; // 1-5
  body: number; // 1-5
  balance: number; // 1-5
+ strength?: number; // 1-5
+ bitterness?: number; // 1-5
+ caffeine?: number; // 1-5
+}
+
+export type CoffeeRoastLevel = 'light' | 'medium' | 'dark';
+
+export interface CoffeeProfile {
+ roast_level?: CoffeeRoastLevel;
+ brew_methods: GrindType[];
+ strength: number; // 1-5
+ acidity: number; // 1-5
+ sweetness: number; // 1-5
+ body: number; // 1-5
+ balance: number; // 1-5
+ bitterness: number; // 1-5
+ caffeine: number; // 1-5
+ flavor_notes: string[];
 }
 
 export interface ProductVariant {
@@ -46,6 +66,9 @@ export interface Product {
  description_ar: string;
  description_en: string;
  category_id: string;
+ unit_type?: ProductUnitType;
+ unit_label_ar?: string;
+ unit_label_en?: string;
  subcategory_id?: string;
  price: number;
  sale_price?: number;
@@ -71,6 +94,8 @@ export interface Product {
  roast_level_en: string;
  variety: string;
  flavor_profile: FlavorProfile;
+ coffee_profile?: CoffeeProfile;
+ recommendation_enabled?: boolean;
  images: string[];
  grind_options: GrindType[];
  weight_options: ProductWeightOption[];
@@ -357,11 +382,30 @@ export interface ContactSubmission {
  created_at: string;
 }
 
-export interface QuizScoreRule {
- field: string;
- operator: 'includes' | 'equals';
- value: string;
- points: number;
+export type QuizMatchField =
+  | 'brew_method'
+  | 'roast_level'
+  | 'flavor'
+  | 'strength'
+  | 'acidity'
+  | 'sweetness'
+  | 'body'
+  | 'balance'
+  | 'bitterness'
+  | 'caffeine';
+
+export interface QuizPreferences {
+  fields: QuizMatchField[];
+  brew_methods: GrindType[];
+  roast_levels: CoffeeRoastLevel[];
+  flavors: string[];
+  strength?: number;
+  acidity?: number;
+  sweetness?: number;
+  body?: number;
+  balance?: number;
+  bitterness?: number;
+  caffeine?: number;
 }
 
 export interface QuizOption {
@@ -370,7 +414,7 @@ export interface QuizOption {
  label_en: string;
  icon: string;
  image_url?: string;
- score_rules: QuizScoreRule[];
+ preferences?: QuizPreferences;
 }
 
 export interface QuizQuestion {
@@ -383,7 +427,6 @@ export interface QuizQuestion {
 }
 
 export interface QuizSettings {
- base_score: number;
  results_count: number;
  badge_ar: string;
  badge_en: string;
@@ -396,6 +439,23 @@ export interface QuizSettings {
 export interface QuizConfig {
  questions: QuizQuestion[];
  settings: QuizSettings;
+}
+
+export interface AssistantQuickAction {
+ id: string;
+ label_ar: string;
+ label_en: string;
+ prompt_ar: string;
+ prompt_en: string;
+}
+export interface AssistantConfig {
+ enabled: boolean;
+ name_ar: string;
+ name_en: string;
+ welcome_ar: string;
+ welcome_en: string;
+ avatar_url?: string;
+ quick_actions: AssistantQuickAction[];
 }
 
 export interface Banner {

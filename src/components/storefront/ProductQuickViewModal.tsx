@@ -154,7 +154,7 @@ export const ProductQuickViewModal: React.FC<ProductQuickViewModalProps> = ({ pr
  {/* Weight Selection */}
  {(product.weight_options || []).length > 0 && (
  <div className="space-y-1.5 pt-2">
- <span className="text-xs font-bold text-[#6B8C8E]">{t('اختر الوزن', 'Select Weight')}:</span>
+ <span className="text-xs font-bold text-[#6B8C8E]">{product.unit_type === 'piece' ? t('اختر عدد الحبات','Select Pieces') : product.unit_type === 'box' ? t('اختر حجم البوكس','Select Box Size') : t('اختر خيار البيع','Select Selling Option')}:</span>
  <div className="grid grid-cols-3 gap-2">
  {product.weight_options?.map(w => (
  <button

@@ -47,7 +47,35 @@
       "sku": "FK-ETH-01",
       "review_count": 2,
       "rating": 5,
-      "sold_count": null
+      "sold_count": 0,
+      "category_id": "cat-1",
+      "category_slug": "coffee-crops",
+      "coffee_profile": {
+        "roast_level": "light",
+        "brew_methods": [
+          "v60",
+          "aeropress",
+          "espresso"
+        ],
+        "strength": 2,
+        "acidity": 4,
+        "sweetness": 4,
+        "body": 2,
+        "balance": 4,
+        "bitterness": 1,
+        "caffeine": 3,
+        "flavor_notes": [
+          "توت",
+          "ورد",
+          "ياسمين",
+          "خوخ",
+          "berry",
+          "floral",
+          "jasmine",
+          "peach"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-2",
@@ -125,7 +153,34 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": {
+        "roast_level": "medium",
+        "brew_methods": [
+          "v60",
+          "espresso",
+          "french_press",
+          "aeropress"
+        ],
+        "strength": 4,
+        "acidity": 3,
+        "sweetness": 4,
+        "body": 4,
+        "balance": 4,
+        "bitterness": 2,
+        "caffeine": 4,
+        "flavor_notes": [
+          "كرز",
+          "توت",
+          "كاكاو",
+          "عسل",
+          "cherry",
+          "berry",
+          "cacao",
+          "honey"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-3",
@@ -212,7 +267,35 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": {
+        "roast_level": "medium",
+        "brew_methods": [
+          "v60",
+          "espresso",
+          "french_press",
+          "aeropress",
+          "cold_brew"
+        ],
+        "strength": 3,
+        "acidity": 3,
+        "sweetness": 5,
+        "body": 3,
+        "balance": 5,
+        "bitterness": 1,
+        "caffeine": 3,
+        "flavor_notes": [
+          "مشمش",
+          "كراميل",
+          "لوز",
+          "فانيلا",
+          "apricot",
+          "caramel",
+          "almond",
+          "vanilla"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-4",
@@ -290,7 +373,34 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": {
+        "roast_level": "dark",
+        "brew_methods": [
+          "turkish",
+          "espresso",
+          "v60",
+          "french_press"
+        ],
+        "strength": 5,
+        "acidity": 2,
+        "sweetness": 4,
+        "body": 5,
+        "balance": 4,
+        "bitterness": 3,
+        "caffeine": 4,
+        "flavor_notes": [
+          "هيل",
+          "كراميل",
+          "عسل",
+          "فاكهية",
+          "cardamom",
+          "caramel",
+          "honey",
+          "fruity"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-5",
@@ -373,7 +483,33 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": {
+        "roast_level": "dark",
+        "brew_methods": [
+          "espresso",
+          "french_press",
+          "v60"
+        ],
+        "strength": 5,
+        "acidity": 2,
+        "sweetness": 4,
+        "body": 5,
+        "balance": 5,
+        "bitterness": 4,
+        "caffeine": 5,
+        "flavor_notes": [
+          "شوكولاتة",
+          "كراميل",
+          "بندق",
+          "مكسرات",
+          "chocolate",
+          "caramel",
+          "hazelnut",
+          "nuts"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-6",
@@ -443,7 +579,33 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": {
+        "roast_level": "medium",
+        "brew_methods": [
+          "v60",
+          "espresso"
+        ],
+        "strength": 3,
+        "acidity": 3,
+        "sweetness": 4,
+        "body": 3,
+        "balance": 4,
+        "bitterness": 2,
+        "caffeine": 3,
+        "flavor_notes": [
+          "فواكه",
+          "ورد",
+          "ياسمين",
+          "كراميل",
+          "شوكولاتة",
+          "fruity",
+          "floral",
+          "caramel",
+          "chocolate"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-7",
@@ -516,7 +678,31 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": {
+        "roast_level": "medium",
+        "brew_methods": [
+          "v60"
+        ],
+        "strength": 2,
+        "acidity": 3,
+        "sweetness": 4,
+        "body": 2,
+        "balance": 4,
+        "bitterness": 1,
+        "caffeine": 3,
+        "flavor_notes": [
+          "توت",
+          "حمضيات",
+          "شوكولاتة",
+          "حلاوة",
+          "berry",
+          "citrus",
+          "chocolate",
+          "sweet"
+        ]
+      },
+      "recommendation_enabled": true
     },
     {
       "id": "prod-8",
@@ -582,7 +768,9 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": null,
+      "recommendation_enabled": false
     },
     {
       "id": "prod-9",
@@ -648,7 +836,9 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": null,
+      "recommendation_enabled": false
     },
     {
       "id": "prod-10",
@@ -713,7 +903,9 @@
         }
       ],
       "variants": [],
-      "created_at": "2026-07-28T22:57:50.718Z"
+      "created_at": "2026-07-28T22:57:50.718Z",
+      "coffee_profile": null,
+      "recommendation_enabled": false
     }
   ],
   "categories": [
@@ -1388,300 +1580,445 @@
   "banners": [],
   "quizConfig": {
     "settings": {
-      "base_score": 70,
       "results_count": 3,
-      "badge_ar": "مستشار القهوة الذكي",
-      "badge_en": "Interactive Coffee Selector",
-      "title_ar": "اكتشف المحصول المخصص لذوقك بـ 30 ثانية",
-      "title_en": "Discover Your Ideal Specialty Crop in 30 Secs",
-      "subtitle_ar": "أجب عن 3 أسئلة بسيطة وسيقوم الخوارزمية الخاصة بسيليكشن باقتراح القهوة الأكثر ملاءمة لمعايير تحضيرك.",
-      "subtitle_en": "Answer 3 simple questions to find the perfect micro-lot matched to your brew preference."
+      "badge_ar": "اختبار ترشيح القهوة",
+      "badge_en": "Coffee Finder Quiz",
+      "title_ar": "اكتشف القهوة المناسبة لذوقك",
+      "title_en": "Find the Coffee That Fits Your Taste",
+      "subtitle_ar": "جاوب على 6 أسئلة بسيطة، ونطابق إجاباتك مع ملف كل قهوة في المتجر.",
+      "subtitle_en": "Answer 6 simple questions and we will match your answers with every coffee profile in the store."
     },
     "questions": [
       {
-        "id": "q-brew-method",
-        "title_ar": "ما هي طريقتك الأساسية في تحضير القهوة؟",
-        "title_en": "What is your primary brewing method?",
+        "id": "brew",
+        "title_ar": "طريقة التحضير المفضلة؟",
+        "title_en": "What is your preferred brewing method?",
         "sort_order": 1,
         "is_enabled": true,
         "options": [
           {
-            "id": "v60",
-            "label_ar": "الترشيح V60 / كاليتا / أظرف مقطرة",
-            "label_en": "Filter V60 / Kalita / Drip Bags",
-            "icon": "☕️",
-            "score_rules": [
-              {
-                "field": "process_ar",
-                "operator": "includes",
-                "value": "مجففة",
-                "points": 15
-              },
-              {
-                "field": "process_en",
-                "operator": "includes",
-                "value": "natural",
-                "points": 15
-              },
-              {
-                "field": "process_en",
-                "operator": "includes",
-                "value": "dried",
-                "points": 15
-              }
-            ]
-          },
-          {
             "id": "espresso",
-            "label_ar": "الإسبرسو ومشروبات الحليب (اللاتيه)",
-            "label_en": "Espresso & Milk Drinks",
-            "icon": "🥛",
-            "score_rules": [
-              {
-                "field": "name_ar",
-                "operator": "includes",
-                "value": "مزيج",
-                "points": 20
-              },
-              {
-                "field": "name_en",
-                "operator": "includes",
-                "value": "blend",
-                "points": 20
-              },
-              {
-                "field": "process_ar",
-                "operator": "includes",
-                "value": "غسول",
-                "points": 20
-              },
-              {
-                "field": "process_en",
-                "operator": "includes",
-                "value": "washed",
-                "points": 20
-              }
-            ]
+            "label_ar": "إسبريسو ومشروبات الحليب",
+            "label_en": "Espresso & milk drinks",
+            "icon": "☕",
+            "preferences": {
+              "fields": [
+                "brew_method"
+              ],
+              "brew_methods": [
+                "espresso"
+              ],
+              "roast_levels": [],
+              "flavors": []
+            }
           },
           {
-            "id": "frenchpress",
-            "label_ar": "المكابس الفرنساوية / القهوة الباردة Cold Brew",
+            "id": "v60",
+            "label_ar": "V60 / فلتر",
+            "label_en": "V60 / Filter",
+            "icon": "💧",
+            "preferences": {
+              "fields": [
+                "brew_method"
+              ],
+              "brew_methods": [
+                "v60"
+              ],
+              "roast_levels": [],
+              "flavors": []
+            }
+          },
+          {
+            "id": "french",
+            "label_ar": "فرنش بريس / كولد برو",
             "label_en": "French Press / Cold Brew",
             "icon": "🧊",
-            "score_rules": []
+            "preferences": {
+              "fields": [
+                "brew_method"
+              ],
+              "brew_methods": [
+                "french_press",
+                "cold_brew"
+              ],
+              "roast_levels": [],
+              "flavors": []
+            }
           },
           {
-            "id": "saudi",
-            "label_ar": "القهوة السعودية التقليدية الهيل والزعفران",
-            "label_en": "Traditional Saudi Coffee",
+            "id": "turkish",
+            "label_ar": "تركية / سعودية",
+            "label_en": "Turkish / Saudi",
             "icon": "🇸🇦",
-            "score_rules": []
+            "preferences": {
+              "fields": [
+                "brew_method"
+              ],
+              "brew_methods": [
+                "turkish"
+              ],
+              "roast_levels": [],
+              "flavors": []
+            }
           }
         ]
       },
       {
-        "id": "q-flavor",
-        "title_ar": "ما هي طابع النكهات والإيحاءات التي تفضلها في الكوب؟",
-        "title_en": "Which flavor notes do you prefer?",
+        "id": "roast",
+        "title_ar": "درجة التحميص التي تفضلها؟",
+        "title_en": "What roast level do you prefer?",
         "sort_order": 2,
         "is_enabled": true,
         "options": [
           {
-            "id": "fruity",
-            "label_ar": "فاكهية ياسمين وتوت وأزهار عطرية",
-            "label_en": "Fruity, Floral, Jasmine & Berry",
-            "icon": "🫐",
-            "score_rules": [
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "توت",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "berry",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "ورد",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "floral",
-                "points": 15
-              }
-            ]
+            "id": "light",
+            "label_ar": "فاتح",
+            "label_en": "Light",
+            "icon": "🌱",
+            "preferences": {
+              "fields": [
+                "roast_level"
+              ],
+              "brew_methods": [],
+              "roast_levels": [
+                "light"
+              ],
+              "flavors": []
+            }
           },
           {
-            "id": "chocolate",
-            "label_ar": "شوكولاتة فاخرة ومكسرات كاجو ولوز",
-            "label_en": "Dark Chocolate, Nuts & Almond",
-            "icon": "🍫",
-            "score_rules": [
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "شوكولاتة",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "chocolate",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "مكسرات",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "nut",
-                "points": 15
-              }
-            ]
+            "id": "medium",
+            "label_ar": "متوسط",
+            "label_en": "Medium",
+            "icon": "⚖️",
+            "preferences": {
+              "fields": [
+                "roast_level"
+              ],
+              "brew_methods": [],
+              "roast_levels": [
+                "medium"
+              ],
+              "flavors": []
+            }
           },
           {
-            "id": "caramel",
-            "label_ar": "حلاوة كراميل وعسل صافي متوازن",
-            "label_en": "Caramel Sweetness & Honey",
-            "icon": "🍯",
-            "score_rules": [
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "كراميل",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "caramel",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "عسل",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "honey",
-                "points": 15
-              }
-            ]
+            "id": "dark",
+            "label_ar": "غامق",
+            "label_en": "Dark",
+            "icon": "🔥",
+            "preferences": {
+              "fields": [
+                "roast_level"
+              ],
+              "brew_methods": [],
+              "roast_levels": [
+                "dark"
+              ],
+              "flavors": []
+            }
           },
           {
-            "id": "citrus",
-            "label_ar": "حمضية منعشة مثل الخوخ والعنب الأحمر",
-            "label_en": "Crisp Citrus, Peach & Red Grape",
-            "icon": "🍑",
-            "score_rules": [
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "حمضية",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "citrus",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_ar",
-                "operator": "includes",
-                "value": "خوخ",
-                "points": 15
-              },
-              {
-                "field": "tasting_notes_en",
-                "operator": "includes",
-                "value": "peach",
-                "points": 15
-              }
-            ]
+            "id": "unknown",
+            "label_ar": "لا أعرف",
+            "label_en": "I don’t know",
+            "icon": "❔",
+            "preferences": {
+              "fields": [],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": []
+            }
           }
         ]
       },
       {
-        "id": "q-roast",
-        "title_ar": "اختر درجة التحميص المفضلة لديك",
-        "title_en": "Preferred Roast Level",
+        "id": "flavor",
+        "title_ar": "ما النكهات التي تفضلها؟",
+        "title_en": "Which flavors do you prefer?",
         "sort_order": 3,
         "is_enabled": true,
         "options": [
           {
+            "id": "chocolate",
+            "label_ar": "شوكولاتة ومكسرات",
+            "label_en": "Chocolate & nuts",
+            "icon": "🍫",
+            "preferences": {
+              "fields": [
+                "flavor"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [
+                "شوكولاتة",
+                "مكسرات",
+                "chocolate",
+                "nuts",
+                "hazelnut",
+                "كاكاو",
+                "cacao"
+              ]
+            }
+          },
+          {
+            "id": "fruity",
+            "label_ar": "فاكهية وزهرية",
+            "label_en": "Fruity & floral",
+            "icon": "🫐",
+            "preferences": {
+              "fields": [
+                "flavor"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [
+                "فاكهية",
+                "فواكه",
+                "توت",
+                "ياسمين",
+                "ورد",
+                "fruity",
+                "berry",
+                "floral",
+                "jasmine"
+              ]
+            }
+          },
+          {
+            "id": "caramel",
+            "label_ar": "كراميل وحلاوة",
+            "label_en": "Caramel & sweet",
+            "icon": "🍯",
+            "preferences": {
+              "fields": [
+                "flavor"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [
+                "كراميل",
+                "عسل",
+                "فانيلا",
+                "حلاوة",
+                "caramel",
+                "honey",
+                "vanilla",
+                "sweet"
+              ]
+            }
+          },
+          {
+            "id": "citrus",
+            "label_ar": "حمضيات وفواكه منعشة",
+            "label_en": "Citrus & fresh fruit",
+            "icon": "🍊",
+            "preferences": {
+              "fields": [
+                "flavor"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [
+                "حمضيات",
+                "مشمش",
+                "خوخ",
+                "citrus",
+                "apricot",
+                "peach"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "strength",
+        "title_ar": "تحب قوة القهوة قد إيه؟",
+        "title_en": "How strong do you like your coffee?",
+        "sort_order": 4,
+        "is_enabled": true,
+        "options": [
+          {
             "id": "light",
-            "label_ar": "تحميص خفيف (لإبراز الحمضية والفاكهة)",
-            "label_en": "Light Roast (Filter Oriented)",
-            "icon": "",
-            "score_rules": [
-              {
-                "field": "roast_level_ar",
-                "operator": "includes",
-                "value": "خفيفة",
-                "points": 15
-              },
-              {
-                "field": "roast_level_en",
-                "operator": "includes",
-                "value": "light",
-                "points": 15
-              }
-            ]
+            "label_ar": "خفيفة",
+            "label_en": "Light",
+            "icon": "🫧",
+            "preferences": {
+              "fields": [
+                "strength"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "strength": 2
+            }
           },
           {
             "id": "medium",
-            "label_ar": "تحميص متوسط (متوازن لجميع الطرق)",
-            "label_en": "Medium Roast (Omni-Roast)",
-            "icon": "",
-            "score_rules": [
-              {
-                "field": "roast_level_ar",
-                "operator": "includes",
-                "value": "متوسطة",
-                "points": 15
-              },
-              {
-                "field": "roast_level_en",
-                "operator": "includes",
-                "value": "medium",
-                "points": 15
-              }
-            ]
+            "label_ar": "متوسطة",
+            "label_en": "Medium",
+            "icon": "⚖️",
+            "preferences": {
+              "fields": [
+                "strength"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "strength": 3
+            }
           },
           {
-            "id": "dark",
-            "label_ar": "تحميص غامق (قوام ثقيل للإسبرسو)",
-            "label_en": "Dark Roast (Rich Espresso)",
-            "icon": "",
-            "score_rules": [
-              {
-                "field": "roast_level_ar",
-                "operator": "includes",
-                "value": "داكنة",
-                "points": 15
-              },
-              {
-                "field": "roast_level_en",
-                "operator": "includes",
-                "value": "dark",
-                "points": 15
-              }
-            ]
+            "id": "strong",
+            "label_ar": "قوية",
+            "label_en": "Strong",
+            "icon": "💪",
+            "preferences": {
+              "fields": [
+                "strength"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "strength": 5
+            }
+          }
+        ]
+      },
+      {
+        "id": "acidity",
+        "title_ar": "درجة الحموضة المفضلة؟",
+        "title_en": "What acidity level do you prefer?",
+        "sort_order": 5,
+        "is_enabled": true,
+        "options": [
+          {
+            "id": "low",
+            "label_ar": "منخفضة",
+            "label_en": "Low",
+            "icon": "🌙",
+            "preferences": {
+              "fields": [
+                "acidity"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "acidity": 2
+            }
+          },
+          {
+            "id": "medium",
+            "label_ar": "متوسطة",
+            "label_en": "Medium",
+            "icon": "⚖️",
+            "preferences": {
+              "fields": [
+                "acidity"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "acidity": 3
+            }
+          },
+          {
+            "id": "high",
+            "label_ar": "عالية",
+            "label_en": "High",
+            "icon": "✨",
+            "preferences": {
+              "fields": [
+                "acidity"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "acidity": 5
+            }
+          }
+        ]
+      },
+      {
+        "id": "style",
+        "title_ar": "أي وصف أقرب لذوقك؟",
+        "title_en": "Which cup style sounds most like you?",
+        "sort_order": 6,
+        "is_enabled": true,
+        "options": [
+          {
+            "id": "balanced",
+            "label_ar": "متوازنة",
+            "label_en": "Balanced",
+            "icon": "⚖️",
+            "preferences": {
+              "fields": [
+                "balance",
+                "sweetness"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "balance": 5,
+              "sweetness": 3
+            }
+          },
+          {
+            "id": "sweet",
+            "label_ar": "حلوة",
+            "label_en": "Sweet",
+            "icon": "🍯",
+            "preferences": {
+              "fields": [
+                "sweetness"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "sweetness": 5
+            }
+          },
+          {
+            "id": "fruity",
+            "label_ar": "فاكهية",
+            "label_en": "Fruity",
+            "icon": "🍓",
+            "preferences": {
+              "fields": [
+                "flavor",
+                "acidity"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [
+                "فاكهية",
+                "فواكه",
+                "توت",
+                "ياسمين",
+                "ورد",
+                "fruity",
+                "berry",
+                "floral"
+              ],
+              "acidity": 4
+            }
+          },
+          {
+            "id": "bold",
+            "label_ar": "جريئة",
+            "label_en": "Bold",
+            "icon": "🔥",
+            "preferences": {
+              "fields": [
+                "strength",
+                "body"
+              ],
+              "brew_methods": [],
+              "roast_levels": [],
+              "flavors": [],
+              "strength": 5,
+              "body": 5
+            }
           }
         ]
       }

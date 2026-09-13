@@ -22,6 +22,7 @@ export const BannerDisplay: React.FC<BannerDisplayProps> = ({ position, onNaviga
  }, [position]);
 
  const visible = banners.filter(b => !dismissed.has(b.id));
+ const handleBannerClick = (url?: string) => { if (!url) return; if (/^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer'); else onNavigate?.(url); };
  if (visible.length === 0) return null;
 
  return (
@@ -31,12 +32,12 @@ export const BannerDisplay: React.FC<BannerDisplayProps> = ({ position, onNaviga
  key={banner.id}
  initial={{ opacity: 0, y: 20 }}
  animate={{ opacity: 1, y: 0 }}
- className="relative rounded-2xl overflow-hidden cursor-pointer group"
+ className="relative rounded-2xl overflow-hidden cursor-pointer group min-h-40 sm:min-h-56"
  style={{ backgroundColor: banner.bg_color }}
- onClick={() => banner.link_url && onNavigate?.(banner.link_url)}
+ onClick={() => handleBannerClick(banner.link_url)}
  >
  {banner.image_url && (
- <img src={banner.image_url} alt="" className="w-full h-48 sm:h-64 object-cover opacity-40 group-hover:opacity-50 transition" />
+ <img src={banner.image_url} alt={language === 'ar' ? banner.title_ar : banner.title_en} className="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-65 transition duration-500" />
  )}
  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6" style={{ color: banner.text_color }}>
  <h3 className="text-xl sm:text-2xl font-extrabold font-serif mb-2">

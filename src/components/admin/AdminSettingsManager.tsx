@@ -29,7 +29,7 @@ const defaultSettings: Settings = {
  store_name_en: '',
  vat_number: '',
  vat_rate: 15,
- free_shipping_threshold: 200,
+ free_shipping_threshold: 199,
  default_currency: 'SAR',
  support_phone: '',
  support_email: '',
@@ -41,7 +41,7 @@ const defaultSettings: Settings = {
  tiktok_url: '',
  enable_loyalty: false,
  points_per_sar: 1,
- sar_per_point: 10,
+ sar_per_point: 0.05,
 };
 
 export const AdminSettingsManager: React.FC = () => {
@@ -61,7 +61,7 @@ export const AdminSettingsManager: React.FC = () => {
  const res = await fetch('/api/admin/settings');
  if (res.ok) {
  const data = await res.json();
- setSettings({ ...defaultSettings, ...data });
+ setSettings({ ...defaultSettings, ...data, vat_rate: Number(data.vat_rate ?? 0.15) * 100, sar_per_point: Number(data.sar_per_point ?? 0.05) });
  }
  } catch {
  setError(t('فشل في تحميل الإعدادات', 'Failed to load settings'));
@@ -78,7 +78,7 @@ export const AdminSettingsManager: React.FC = () => {
  const res = await fetch('/api/admin/settings', {
  method: 'PUT',
  headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify(settings),
+ body: JSON.stringify({ ...settings, vat_rate: Number(settings.vat_rate) / 100, sar_per_point: Number(settings.sar_per_point) }),
  });
  if (!res.ok) throw new Error('Failed to save');
  setSaved(true);

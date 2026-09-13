@@ -51,8 +51,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
  const [discountAmount, setDiscountAmount] = useState<number>(0);
  const [loyaltyPointsToRedeem, setLoyaltyPointsToRedeem] = useState<number>(0);
  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+ const [storeSettings, setStoreSettings] = useState<any>(null);
 
- const freeShippingThreshold = 199;
+ useEffect(() => { fetch('/api/public/settings').then(r => r.ok ? r.json() : null).then(setStoreSettings).catch(() => {}); }, []);
+
+ const freeShippingThreshold = Number(storeSettings?.free_shipping_threshold ?? 199);
+ const loyaltySarPerPoint = Number(storeSettings?.sar_per_point ?? 0.05) || 0.05;
+ const vatRate = Number(storeSettings?.vat_rate ?? 0.15);
 
  useEffect(() => {
  localStorage.setItem('fursan_cart', JSON.stringify(items));
@@ -132,14 +137,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
  setDiscountAmount(0);
  };
 
- const loyaltyDiscountSAR = loyaltyPointsToRedeem * 0.05; // 20 points = 1 SAR
+ const loyaltyDiscountSAR = Number((loyaltyPointsToRedeem * loyaltySarPerPoint).toFixed(2));
 
  const totalDiscount = discountAmount + loyaltyDiscountSAR;
  const isFreeShippingEligible = subtotal >= freeShippingThreshold || appliedCoupon?.discount_type === 'free_shipping';
  const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
 
  const subtotalAfterDiscount = Math.max(0, subtotal - totalDiscount);
- const taxAmount = parseFloat((subtotalAfterDiscount * 0.15).toFixed(2));
+ const taxAmount = parseFloat((subtotalAfterDiscount * vatRate).toFixed(2));
  const totalAmount = parseFloat((subtotalAfterDiscount + taxAmount).toFixed(2));
 
  const totalItemCount = items.reduce((sum, item) => sum + item.quantity, 0);

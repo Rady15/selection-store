@@ -21,7 +21,9 @@ import {
  Settings,
  X,
  ShoppingCart,
+ CreditCard,
  BrainCircuit,
+ Bot,
  Store,
  Menu,
  User
@@ -108,6 +110,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
  { id: 'wholesale', label_ar: 'الجملة B2B', label_en: 'Wholesale B2B', icon: Building2 },
  { id: 'categories', label_ar: 'الفئات', label_en: 'Categories', icon: LayoutGrid },
  { id: 'banners', label_ar: 'البنرات الإعلانية', label_en: 'Banners & Ads', icon: Image },
+ { id: 'payments', label_ar: 'المدفوعات', label_en: 'Payments', icon: CreditCard },
  { id: 'announcement', label_ar: 'شريط الإعلانات', label_en: 'Announcement Bar', icon: Megaphone },
  { id: 'quiz', label_ar: 'اختبار القهوة', label_en: 'Coffee Quiz', icon: BrainCircuit },
  { id: 'newsletter', label_ar: 'النشرة البريدية', label_en: 'Newsletter', icon: Mail },

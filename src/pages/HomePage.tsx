@@ -97,6 +97,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
 
  return (
  <div className="space-y-0 bg-[#FFFFFF]">
+ <BannerDisplay position="hero" onNavigate={onNavigate} />
  {sections
  .filter(sec => sec.is_enabled)
  .map(sec => {
@@ -179,7 +180,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
  }
  })}
 
- <BannerDisplay position="hero" onNavigate={onNavigate} />
 
  {/* Default/Additional Horizontal Product Carousels if sections list is basic */}
  {sections.length > 0 && !sections.some(s => s.id === 'sec-[#values-added]') && (
