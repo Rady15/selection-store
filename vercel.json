@@ -23,11 +23,7 @@
       "dest": "server.ts"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/dist/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(png|ico|svg|jpg|jpeg|webp|avif|json|txt|xml|webmanifest|map|css|js))",
+      "src": "/(.*\\..*)",
       "dest": "/dist/$1"
     },
     {
