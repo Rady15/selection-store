@@ -2,24 +2,62 @@
 import { useLanguage } from '../../context/LanguageContext';
 import { ContactSubmission } from '../../types';
 import { Mail, Phone, MessageSquare, User, Trash2, Send } from 'lucide-react';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 export const AdminContactManager: React.FC = () => {
- const { language, t } = useLanguage();
- const [messages, setMessages] = useState<ContactSubmission[]>([]);
- const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
- const [replyingId, setReplyingId] = useState<string | null>(null);
+  const { language, t } = useLanguage();
+  const [messages, setMessages] = useState<ContactSubmission[]>([]);
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
- useEffect(() => { loadMessages(); }, []);
+  useEffect(() => { loadMessages(); }, []);
 
- const loadMessages = () => {
- fetch('/api/admin/contact-submissions')
- .then(async res => {
- if (!res.ok) throw new Error(`HTTP ${res.status}`);
- return res.json();
- })
- .then(data => setMessages(data))
- .catch(err => console.error(err));
- };
+  const loadMessages = () => {
+  fetch('/api/admin/contact-submissions')
+  .then(async res => {
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+  })
+  .then(data => {
+  setMessages(Array.isArray(data) ? data : []);
+  setSelectedIds(new Set());
+  })
+  .catch(err => console.error(err));
+  };
+
+  const toggleSelect = (id: string) => {
+  setSelectedIds(prev => {
+  const next = new Set(prev);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+  });
+  };
+
+  const toggleSelectAll = () => {
+  if (selectedIds.size === messages.length && messages.length > 0) setSelectedIds(new Set());
+  else setSelectedIds(new Set(messages.map(m => m.id)));
+  };
+
+  const handleBulkDelete = async () => {
+  if (selectedIds.size < 1) return;
+  setBulkDeleting(true);
+  setBulkError('');
+  try {
+  await bulkDeleteRequest('contact', [...selectedIds]);
+  setSelectedIds(new Set());
+  setShowBulkConfirm(false);
+  loadMessages();
+  } catch (err: any) {
+  setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+  } finally {
+  setBulkDeleting(false);
+  }
+  };
 
  const handleDelete = async (id: string) => {
  if (!confirm(language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure?')) return;
@@ -55,15 +93,52 @@ export const AdminContactManager: React.FC = () => {
  <p className="text-xs text-[#6B8C8E] mt-0.5">{t('رسائل العملاء من نموذج التواصل', 'Customer messages from the contact form')}</p>
  </div>
 
- <div className="space-y-3">
- {messages.length === 0 ? (
- <div className="p-8 text-center text-[#6B8C8E] bg-[#F0FAFA] rounded-3xl border border-[#E8F2F2]">
- {t('لا توجد رسائل بعد', 'No messages yet')}
- </div>
- ) : messages.map(msg => (
- <div key={msg.id} className="p-5 rounded-2xl bg-[#F0FAFA] border border-[#E8F2F2]">
- <div className="flex justify-between items-start">
- <div className="flex-1">
+  <BulkDeleteBar
+  selectedCount={selectedIds.size}
+  onClear={() => setSelectedIds(new Set())}
+  onDelete={() => setShowBulkConfirm(true)}
+  deleting={bulkDeleting}
+  />
+  {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+  {showBulkConfirm && (
+  <BulkDeleteConfirm
+  count={selectedIds.size}
+  entityLabel={t('رسالة', 'messages')}
+  onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+  onConfirm={handleBulkDelete}
+  confirming={bulkDeleting}
+  />
+  )}
+
+  {messages.length > 0 && (
+  <div className="flex items-center gap-2 text-xs text-[#6B8C8E]">
+  <input
+  type="checkbox"
+  checked={selectedIds.size === messages.length}
+  onChange={toggleSelectAll}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  />
+  <span>{t('تحديد الكل', 'Select all')}</span>
+  </div>
+  )}
+
+  <div className="space-y-3">
+  {messages.length === 0 ? (
+  <div className="p-8 text-center text-[#6B8C8E] bg-[#F0FAFA] rounded-3xl border border-[#E8F2F2]">
+  {t('لا توجد رسائل بعد', 'No messages yet')}
+  </div>
+  ) : messages.map(msg => (
+  <div key={msg.id} className={`p-5 rounded-2xl border transition ${selectedIds.has(msg.id) ? 'bg-[#0E5257]/5 border-[#0E5257]' : 'bg-[#F0FAFA] border-[#E8F2F2]'}`}>
+  <div className="flex justify-between items-start">
+  <div className="flex items-start gap-2 flex-1">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(msg.id)}
+  onChange={() => toggleSelect(msg.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer mt-1"
+  title={t('تحديد', 'Select')}
+  />
+  <div className="flex-1">
  <div className="flex items-center gap-2">
  <User className="w-4 h-4 text-[#6CC6C9]" />
  <span className="font-bold text-[#1A2E30] text-sm">{msg.name}</span>
@@ -115,14 +190,15 @@ export const AdminContactManager: React.FC = () => {
  {new Date(msg.created_at).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US')}
  </span>
  </div>
- <button onClick={() => handleDelete(msg.id)}
- className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-[#6CC6C9] transition cursor-pointer ml-2">
- <Trash2 className="w-3.5 h-3.5" />
- </button>
- </div>
- </div>
- ))}
- </div>
+  <button onClick={() => handleDelete(msg.id)}
+  className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-[#6CC6C9] transition cursor-pointer ml-2">
+  <Trash2 className="w-3.5 h-3.5" />
+  </button>
+  </div>
+  </div>
+  </div>
+  ))}
+  </div>
  </div>
  );
 };

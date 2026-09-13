@@ -7,6 +7,7 @@ import {
  Trash2, Save, Edit3, Plus, Minus, AlertCircle,
  CheckCircle, Clock, CreditCard, UserCog
 } from 'lucide-react';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 const statusColors: Record<string, string> = {
  pending: 'bg-yellow-500/20 text-yellow-400',
@@ -57,32 +58,68 @@ export const AdminCustomersManager: React.FC = () => {
  const [loading, setLoading] = useState(true);
  const [saving, setSaving] = useState(false);
  const [error, setError] = useState('');
- const [addressFormOpen, setAddressFormOpen] = useState(false);
- const [editingAddress, setEditingAddress] = useState<Address | null>(null);
- const [addressForm, setAddressForm] = useState<Omit<Address, 'id'>>(EMPTY_ADDRESS);
+  const [addressFormOpen, setAddressFormOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addressForm, setAddressForm] = useState<Omit<Address, 'id'>>(EMPTY_ADDRESS);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
- const fetchUsers = async () => {
- try {
- const res = await fetch('/api/admin/users');
- if (!res.ok) { console.error('API error:', res.status); return; }
- setUsers(await res.json());
- } catch (err) { console.error(err); }
- setLoading(false);
- };
+  const fetchUsers = async () => {
+  try {
+  const res = await fetch('/api/admin/users');
+  if (!res.ok) { console.error('API error:', res.status); return; }
+  setUsers(await res.json());
+  setSelectedIds(new Set());
+  } catch (err) { console.error(err); }
+  setLoading(false);
+  };
 
  useEffect(() => { fetchUsers(); }, []);
 
  const customers = users.filter(u => u && u.role === 'customer');
  const admins = users.filter(u => u && u.role === 'admin');
 
- const filteredUsers = customers.filter(u => {
- if (!u) return false;
- const term = searchTerm.toLowerCase();
- return String(u.name || '').toLowerCase().includes(term) ||
- String(u.email || '').toLowerCase().includes(term) ||
- String(u.phone || '').toLowerCase().includes(term) ||
- String(u.id || '').toLowerCase().includes(term);
- });
+  const filteredUsers = customers.filter(u => {
+  if (!u) return false;
+  const term = searchTerm.toLowerCase();
+  return String(u.name || '').toLowerCase().includes(term) ||
+  String(u.email || '').toLowerCase().includes(term) ||
+  String(u.phone || '').toLowerCase().includes(term) ||
+  String(u.id || '').toLowerCase().includes(term);
+  });
+
+  const toggleSelect = (id: string) => {
+  setSelectedIds(prev => {
+  const next = new Set(prev);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+  });
+  };
+
+  const toggleSelectAll = () => {
+  if (selectedIds.size === filteredUsers.length && filteredUsers.length > 0) setSelectedIds(new Set());
+  else setSelectedIds(new Set(filteredUsers.map(u => u.id)));
+  };
+
+  const handleBulkDelete = async () => {
+  if (selectedIds.size < 1) return;
+  setBulkDeleting(true);
+  setBulkError('');
+  try {
+  await bulkDeleteRequest('users', [...selectedIds]);
+  setSelectedIds(new Set());
+  setShowBulkConfirm(false);
+  if (selectedUser && selectedIds.has(selectedUser.id)) closeDetail();
+  await fetchUsers();
+  } catch (err: any) {
+  setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+  } finally {
+  setBulkDeleting(false);
+  }
+  };
 
  const openUserDetail = async (user: User) => {
  setSelectedUser(user);
@@ -332,12 +369,38 @@ export const AdminCustomersManager: React.FC = () => {
         </div>
       </div>
 
- <div className="bg-[#F0FAFA] border border-[#E8F2F2] rounded-3xl overflow-hidden shadow-2xl">
- <div className="overflow-x-auto">
- <table className="w-full text-xs text-start">
- <thead className="bg-[#FFFFFF] text-[#6B8C8E] uppercase font-bold border-b border-[#E8F2F2]">
- <tr>
- <th className="p-4 text-start">{t('المستخدم', 'User')}</th>
+  <BulkDeleteBar
+  selectedCount={selectedIds.size}
+  onClear={() => setSelectedIds(new Set())}
+  onDelete={() => setShowBulkConfirm(true)}
+  deleting={bulkDeleting}
+  />
+  {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+  {showBulkConfirm && (
+  <BulkDeleteConfirm
+  count={selectedIds.size}
+  entityLabel={t('عميل', 'customers')}
+  onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+  onConfirm={handleBulkDelete}
+  confirming={bulkDeleting}
+  />
+  )}
+
+  <div className="bg-[#F0FAFA] border border-[#E8F2F2] rounded-3xl overflow-hidden shadow-2xl">
+  <div className="overflow-x-auto">
+  <table className="w-full text-xs text-start">
+  <thead className="bg-[#FFFFFF] text-[#6B8C8E] uppercase font-bold border-b border-[#E8F2F2]">
+  <tr>
+  <th className="p-4 w-10">
+  <input
+  type="checkbox"
+  checked={filteredUsers.length > 0 && selectedIds.size === filteredUsers.length}
+  onChange={toggleSelectAll}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  title={t('تحديد الكل', 'Select all')}
+  />
+  </th>
+  <th className="p-4 text-start">{t('المستخدم', 'User')}</th>
  <th className="p-4 text-start">{t('البريد والجوال', 'Contact')}</th>
  <th className="p-4 text-start">{t('الدور', 'Role')}</th>
  <th className="p-4 text-start">{t('نقاط الولاء', 'Loyalty')}</th>
@@ -347,9 +410,17 @@ export const AdminCustomersManager: React.FC = () => {
  </tr>
  </thead>
  <tbody className="divide-y divide-[#E8F2F2]/60 text-[#4A6869]">
- {filteredUsers.map(u => (
- <tr key={u.id} className="hover:bg-[#FFFFFF]/50 transition">
- <td className="p-4">
+  {filteredUsers.map(u => (
+  <tr key={u.id} className={`hover:bg-[#FFFFFF]/50 transition ${selectedIds.has(u.id) ? 'bg-[#0E5257]/5' : ''}`}>
+  <td className="p-4">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(u.id)}
+  onChange={() => toggleSelect(u.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  />
+  </td>
+  <td className="p-4">
  <div className="flex items-center gap-3">
  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
  u.role === 'admin' ? 'bg-[#0E5257] text-white' : 'bg-[#E8F2F2] text-[#6CC6C9]'

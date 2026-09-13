@@ -5,6 +5,7 @@ import { usePolling } from '../../hooks/usePolling';
 import { Order, OrderStatus } from '../../types';
 import { printTaxInvoice } from '../../utils/printTaxInvoice';
 import { ShoppingBag, Eye, X, Trash2, Printer, Loader2 } from 'lucide-react';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 const statusOptions: { value: OrderStatus; label_ar: string; label_en: string }[] = [
  { value: 'pending', label_ar: 'معلق', label_en: 'Pending' },
@@ -27,9 +28,13 @@ export const AdminOrdersManager: React.FC = () => {
  const [orders, setOrders] = useState<Order[]>([]);
  const [search, setSearch] = useState('');
  const [statusFilter, setStatusFilter] = useState<string>('all');
- const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
- const [updatingId, setUpdatingId] = useState<string | null>(null);
- const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
  // A paid order is always shown as "تم الإنشاء" (Created) even if the fulfillment
  // status was never bumped from pending.
@@ -99,12 +104,43 @@ export const AdminOrdersManager: React.FC = () => {
  printTaxInvoice(ord, { language, formatPrice: formatPriceString });
  };
 
- const filteredOrders = statusFilter === 'all' ? orders : orders.filter(o => getEffectiveStatus(o) === statusFilter);
- const filtered = filteredOrders.filter(o =>
- o.order_number.toLowerCase().includes(search.toLowerCase()) ||
- o.customer_name.includes(search) ||
- o.phone.includes(search)
- );
+  const filteredOrders = statusFilter === 'all' ? orders : orders.filter(o => getEffectiveStatus(o) === statusFilter);
+  const filtered = filteredOrders.filter(o =>
+  o.order_number.toLowerCase().includes(search.toLowerCase()) ||
+  o.customer_name.includes(search) ||
+  o.phone.includes(search)
+  );
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map(o => o.id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size < 1) return;
+    setBulkDeleting(true);
+    setBulkError('');
+    try {
+      await bulkDeleteRequest('orders', [...selectedIds]);
+      setSelectedIds(new Set());
+      setShowBulkConfirm(false);
+      if (selectedOrder && selectedIds.has(selectedOrder.id)) setSelectedOrder(null);
+      loadOrders();
+    } catch (err: any) {
+      setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
  const getStatusColor = (status: string) => {
  switch (status) {
@@ -154,12 +190,39 @@ export const AdminOrdersManager: React.FC = () => {
  ))}
  </div>
 
- <div className="bg-[#F0FAFA] border border-[#E8F2F2] rounded-3xl overflow-hidden shadow-2xl">
- <div className="overflow-x-auto">
- <table className="w-full text-xs text-start">
- <thead className="bg-[#FFFFFF] text-[#6B8C8E] uppercase font-bold border-b border-[#E8F2F2]">
- <tr>
- <th className="p-4 text-start">{t('رقم الطلب والعميل', 'Order & Customer')}</th>
+  <BulkDeleteBar
+  selectedCount={selectedIds.size}
+  onClear={() => setSelectedIds(new Set())}
+  onDelete={() => setShowBulkConfirm(true)}
+  deleting={bulkDeleting}
+  />
+  {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+
+  {showBulkConfirm && (
+  <BulkDeleteConfirm
+  count={selectedIds.size}
+  entityLabel={t('طلب', 'orders')}
+  onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+  onConfirm={handleBulkDelete}
+  confirming={bulkDeleting}
+  />
+  )}
+
+  <div className="bg-[#F0FAFA] border border-[#E8F2F2] rounded-3xl overflow-hidden shadow-2xl">
+  <div className="overflow-x-auto">
+  <table className="w-full text-xs text-start">
+  <thead className="bg-[#FFFFFF] text-[#6B8C8E] uppercase font-bold border-b border-[#E8F2F2]">
+  <tr>
+  <th className="p-4 w-10">
+  <input
+  type="checkbox"
+  checked={filtered.length > 0 && selectedIds.size === filtered.length}
+  onChange={toggleSelectAll}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  title={t('تحديد الكل', 'Select all')}
+  />
+  </th>
+  <th className="p-4 text-start">{t('رقم الطلب والعميل', 'Order & Customer')}</th>
  <th className="p-4 text-start">{t('المدينة والشحن', 'City & Carrier')}</th>
  <th className="p-4 text-start">{t('المبلغ', 'Total')}</th>
  <th className="p-4 text-start">{t('الدفع', 'Payment')}</th>
@@ -168,11 +231,19 @@ export const AdminOrdersManager: React.FC = () => {
  </tr>
  </thead>
  <tbody className="divide-y divide-[#E8F2F2]/60 text-[#4A6869]">
- {filtered.length === 0 ? (
- <tr><td colSpan={6} className="p-8 text-center text-[#6B8C8E]">{t('لا توجد طلبات', 'No orders found')}</td></tr>
- ) : filtered.map(ord => (
- <tr key={ord.id} className="hover:bg-[#FFFFFF]/50 transition">
- <td className="p-4">
+  {filtered.length === 0 ? (
+  <tr><td colSpan={7} className="p-8 text-center text-[#6B8C8E]">{t('لا توجد طلبات', 'No orders found')}</td></tr>
+  ) : filtered.map(ord => (
+  <tr key={ord.id} className={`hover:bg-[#FFFFFF]/50 transition ${selectedIds.has(ord.id) ? 'bg-[#0E5257]/5' : ''}`}>
+  <td className="p-4">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(ord.id)}
+  onChange={() => toggleSelect(ord.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  />
+  </td>
+  <td className="p-4">
  <span className="font-extrabold text-[#1A2E30] block text-sm">{ord.order_number}</span>
  <span className="text-[10px] text-[#6B8C8E]">{ord.customer_name} · {ord.phone}</span>
  </td>

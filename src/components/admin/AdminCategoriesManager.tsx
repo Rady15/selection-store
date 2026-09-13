@@ -4,6 +4,7 @@ import {
  Plus, Trash2, Edit, X, Grid3X3, Image, Star, StarOff, Loader2
 } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 interface Category {
  id: string;
@@ -42,6 +43,10 @@ export const AdminCategoriesManager: React.FC = () => {
   const [form, setForm] = useState<Category>(emptyCategory);
   const [deleteConfirmCat, setDeleteConfirmCat] = useState<Category | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkResult, setBulkResult] = useState('');
 
   useEffect(() => { loadCategories(); }, []);
 
@@ -53,6 +58,7 @@ export const AdminCategoriesManager: React.FC = () => {
       if (!res.ok) throw new Error('Failed to load');
       const data = await res.json();
       setCategories(Array.isArray(data) ? data.sort((a: Category, b: Category) => a.sort_order - b.sort_order) : []);
+      setSelectedIds(new Set());
     } catch {
       setError(t('فشل في تحميل الأقسام', 'Failed to load categories'));
     } finally {
@@ -137,6 +143,42 @@ export const AdminCategoriesManager: React.FC = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === categories.length && categories.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(categories.map(c => c.id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size < 1) return;
+    setBulkDeleting(true);
+    setBulkResult('');
+    try {
+      const result = await bulkDeleteRequest('categories', [...selectedIds]);
+      setSelectedIds(new Set());
+      setShowBulkConfirm(false);
+      await loadCategories();
+      if (result.skipped > 0) {
+        setError(t(
+          `تم حذف ${result.deleted} قسم، وتم تخطي ${result.skipped} قسم لاحتوائها على منتجات مرتبطة.`,
+          `Deleted ${result.deleted} categories, skipped ${result.skipped} with linked products.`
+        ));
+      }
+    } catch (err: any) {
+      setBulkResult(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 animate-fade-in">
@@ -183,9 +225,39 @@ export const AdminCategoriesManager: React.FC = () => {
         </div>
       )}
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        onDelete={() => setShowBulkConfirm(true)}
+        deleting={bulkDeleting}
+      />
+      {bulkResult && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkResult}</div>}
+
+      <div className="flex items-center gap-2 text-xs text-[#6B8C8E]">
+        <input
+          type="checkbox"
+          checked={categories.length > 0 && selectedIds.size === categories.length}
+          onChange={toggleSelectAll}
+          className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+        />
+        <span>{t('تحديد كل الأقسام', 'Select all categories')}</span>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map(cat => (
-          <div key={cat.id} className="p-5 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-3">
+          <div key={cat.id} className={`p-5 rounded-3xl border space-y-3 transition ${selectedIds.has(cat.id) ? 'bg-[#0E5257]/5 border-[#0E5257]' : 'bg-[#F0FAFA] border-[#E8F2F2]'}`}>
+            <div className="flex items-center justify-between">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(cat.id)}
+                onChange={() => toggleSelect(cat.id)}
+                className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+                title={t('تحديد', 'Select')}
+              />
+              <span className="text-[9px] text-[#6B8C8E] bg-[#E8F2F2] px-2 py-0.5 rounded font-bold">
+                #{cat.sort_order}
+              </span>
+            </div>
             <div className="w-full h-32 rounded-xl overflow-hidden bg-[#E8F2F2] flex items-center justify-center">
               {cat.image ? (
                 <img src={cat.image} alt={language === 'ar' ? cat.name_ar : cat.name_en} className="w-full h-full object-cover" />
@@ -199,9 +271,6 @@ export const AdminCategoriesManager: React.FC = () => {
                 <h3 className="font-bold text-[#1A2E30] text-sm">{language === 'ar' ? cat.name_ar : cat.name_en}</h3>
                 <p className="text-[10px] text-[#6B8C8E] font-mono">/{cat.slug}</p>
               </div>
-              <span className="text-[9px] text-[#6B8C8E] bg-[#E8F2F2] px-2 py-0.5 rounded font-bold">
-                #{cat.sort_order}
-              </span>
             </div>
 
             <div className="flex justify-between items-center pt-2 border-t border-[#E8F2F2]">
@@ -277,6 +346,18 @@ export const AdminCategoriesManager: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkConfirm && (
+        <BulkDeleteConfirm
+          count={selectedIds.size}
+          entityLabel={t('قسم', 'categories')}
+          skippedMessage={t('الأقسام المرتبطة بمنتجات سيتم تخطيها تلقائياً.', 'Categories with linked products will be skipped automatically.')}
+          onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+          onConfirm={handleBulkDelete}
+          confirming={bulkDeleting}
+        />
       )}
 
       {/* Edit / Create Modal */}

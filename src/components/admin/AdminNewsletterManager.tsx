@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { Mail, Search, Download, Users, Loader2, X, Trash2 } from 'lucide-react';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 interface Subscriber {
  id: string;
@@ -13,27 +14,32 @@ export const AdminNewsletterManager: React.FC = () => {
  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
- const [search, setSearch] = useState('');
- const [deleting, setDeleting] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
  useEffect(() => { loadSubscribers(); }, []);
 
- const loadSubscribers = async () => {
- setLoading(true);
- setError(null);
- try {
- const res = await fetch('/api/newsletter/subscribers');
- if (!res.ok) throw new Error('Failed to load');
- const data = await res.json();
- setSubscribers(data.sort((a: Subscriber, b: Subscriber) =>
- new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
- ));
- } catch {
- setError(t('فشل في تحميل المشتركين', 'Failed to load subscribers'));
- } finally {
- setLoading(false);
- }
- };
+  const loadSubscribers = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+  const res = await fetch('/api/newsletter/subscribers');
+  if (!res.ok) throw new Error('Failed to load');
+  const data = await res.json();
+  setSubscribers((Array.isArray(data) ? data : []).sort((a: Subscriber, b: Subscriber) =>
+  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ));
+  setSelectedIds(new Set());
+  } catch {
+  setError(t('فشل في تحميل المشتركين', 'Failed to load subscribers'));
+  } finally {
+  setLoading(false);
+  }
+  };
 
  const handleDelete = async (id: string) => {
  if (!confirm(t('هل تريد إلغاء اشتراك هذا البريد؟', 'Unsubscribe this email?'))) return;
@@ -48,11 +54,41 @@ export const AdminNewsletterManager: React.FC = () => {
  }
  };
 
- const filtered = useMemo(() => {
- if (!search.trim()) return subscribers;
- const q = search.toLowerCase();
- return subscribers.filter(s => s.email.toLowerCase().includes(q));
- }, [subscribers, search]);
+  const filtered = useMemo(() => {
+  if (!search.trim()) return subscribers;
+  const q = search.toLowerCase();
+  return subscribers.filter(s => s.email.toLowerCase().includes(q));
+  }, [subscribers, search]);
+
+  const toggleSelect = (id: string) => {
+  setSelectedIds(prev => {
+  const next = new Set(prev);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+  });
+  };
+
+  const toggleSelectAll = () => {
+  if (selectedIds.size === filtered.length && filtered.length > 0) setSelectedIds(new Set());
+  else setSelectedIds(new Set(filtered.map(s => s.id)));
+  };
+
+  const handleBulkDelete = async () => {
+  if (selectedIds.size < 1) return;
+  setBulkDeleting(true);
+  setBulkError('');
+  try {
+  await bulkDeleteRequest('newsletter', [...selectedIds]);
+  setSelectedIds(new Set());
+  setShowBulkConfirm(false);
+  loadSubscribers();
+  } catch (err: any) {
+  setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+  } finally {
+  setBulkDeleting(false);
+  }
+  };
 
  const exportCSV = () => {
  const header = 'email,subscribed_date\n';
@@ -165,18 +201,54 @@ export const AdminNewsletterManager: React.FC = () => {
  </button>
  </div>
 
- {/* Subscribers List */}
- <div className="space-y-2">
+  {/* Subscribers List */}
+  <BulkDeleteBar
+  selectedCount={selectedIds.size}
+  onClear={() => setSelectedIds(new Set())}
+  onDelete={() => setShowBulkConfirm(true)}
+  deleting={bulkDeleting}
+  />
+  {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+  {showBulkConfirm && (
+  <BulkDeleteConfirm
+  count={selectedIds.size}
+  entityLabel={t('مشترك', 'subscribers')}
+  onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+  onConfirm={handleBulkDelete}
+  confirming={bulkDeleting}
+  />
+  )}
+
+  {filtered.length > 0 && (
+  <div className="flex items-center gap-2 text-xs text-[#6B8C8E]">
+  <input
+  type="checkbox"
+  checked={selectedIds.size === filtered.length}
+  onChange={toggleSelectAll}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  />
+  <span>{t('تحديد الكل', 'Select all')}</span>
+  </div>
+  )}
+
+  <div className="space-y-2">
  {filtered.length === 0 ? (
  <div className="p-8 text-center text-[#6B8C8E] bg-[#F0FAFA] rounded-3xl border border-[#E8F2F2]">
  <Mail className="w-8 h-8 mx-auto mb-2 opacity-50" />
  {search ? t('لا توجد نتائج', 'No results found') : t('لا يوجد مشتركين', 'No subscribers yet')}
  </div>
  ) : (
- filtered.map(sub => (
- <div key={sub.id} className="p-4 rounded-2xl bg-[#F0FAFA] border border-[#E8F2F2] flex items-center justify-between gap-3">
- <div className="flex items-center gap-3 min-w-0">
- <div className="w-9 h-9 rounded-full bg-[#0E5257]/20 flex items-center justify-center shrink-0">
+  filtered.map(sub => (
+  <div key={sub.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 transition ${selectedIds.has(sub.id) ? 'bg-[#0E5257]/5 border-[#0E5257]' : 'bg-[#F0FAFA] border-[#E8F2F2]'}`}>
+  <div className="flex items-center gap-3 min-w-0">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(sub.id)}
+  onChange={() => toggleSelect(sub.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer shrink-0"
+  title={t('تحديد', 'Select')}
+  />
+  <div className="w-9 h-9 rounded-full bg-[#0E5257]/20 flex items-center justify-center shrink-0">
  <Mail className="w-4 h-4 text-[#0E5257]" />
  </div>
  <div className="min-w-0">

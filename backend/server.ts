@@ -1195,10 +1195,69 @@ app.put('/api/admin/wholesale/:id', (req, res) => {
   res.json(sub);
 });
 
+// Delete wholesale submission
+app.delete('/api/admin/wholesale/:id', (req, res) => {
+  db.deleteWholesaleSubmission(req.params.id);
+  res.json({ success: true });
+});
+
 // Update stock notification status
 app.put('/api/admin/stock-notifications/:id', (req, res) => {
   const sub = db.updateStockNotification(req.params.id, req.body);
   res.json(sub);
+});
+
+// Delete stock notification
+app.delete('/api/admin/stock-notifications/:id', (req, res) => {
+  db.deleteStockNotification(req.params.id);
+  res.json({ success: true });
+});
+
+// Bulk delete: deletes multiple records of one entity in a single request.
+// Respects business constraints (e.g. categories linked to products are
+// skipped, never force-deleted) and reports per-item results.
+app.post('/api/admin/bulk-delete', async (req, res) => {
+  const { entity, ids } = req.body || {};
+  const allowed: Record<string, (id: string) => { ok: boolean; reason?: string }> = {
+    products: (id) => { db.deleteProduct(id); return { ok: true }; },
+    categories: (id) => {
+      const used = db.getProducts({ category_id: id });
+      if (used.length) return { ok: false, reason: 'has_products' };
+      db.deleteCategory(id);
+      return { ok: true };
+    },
+    orders: (id) => { db.deleteOrder(id); return { ok: true }; },
+    users: (id) => {
+      if (id === 'usr-admin-1') return { ok: false, reason: 'protected_admin' };
+      db.deleteUser(id);
+      return { ok: true };
+    },
+    coupons: (id) => { db.deleteCoupon(id); return { ok: true }; },
+    banners: (id) => { db.deleteBanner(id); return { ok: true }; },
+    reviews: (id) => { db.deleteReview(id); return { ok: true }; },
+    questions: (id) => { db.deleteQuestion(id); return { ok: true }; },
+    contact: (id) => { db.deleteContactSubmission(id); return { ok: true }; },
+    wholesale: (id) => { db.deleteWholesaleSubmission(id); return { ok: true }; },
+    'stock-notifications': (id) => { db.deleteStockNotification(id); return { ok: true }; },
+    newsletter: (id) => { db.deleteNewsletterSubscriber(id); return { ok: true }; }
+  };
+  const handler = entity ? allowed[String(entity)] : undefined;
+  if (!handler || !Array.isArray(ids) || ids.length < 1 || ids.length > 200) {
+    return res.status(400).json({ error_ar: 'طلب حذف جماعي غير صالح', error_en: 'Invalid bulk delete request' });
+  }
+  const results = ids.map((raw: any) => {
+    const id = String(raw || '');
+    if (!id) return { id, ok: false, reason: 'invalid_id' };
+    try {
+      const r = handler(id);
+      return { id, ...r };
+    } catch {
+      return { id, ok: false, reason: 'error' };
+    }
+  });
+  await db.flush();
+  const deleted = results.filter(r => r.ok).length;
+  res.json({ success: true, deleted, skipped: results.length - deleted, results });
 });
 
 // ============ Stripe Payments ============

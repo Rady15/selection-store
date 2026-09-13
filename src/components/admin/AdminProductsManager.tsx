@@ -4,6 +4,7 @@ import { useCurrency } from '../../context/CurrencyContext';
 import { Product, Category, ProductUnitType, ProductWeightOption, CoffeeRoastLevel, GrindType } from '../../types';
 import { Plus, Trash2, Edit, Search, X, Image as ImageIcon, Package, Save, Loader2 } from 'lucide-react';
 import ImageGalleryUploader from './ImageGalleryUploader';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 const UNIT_OPTIONS: {value:ProductUnitType; ar:string; en:string; suffix:string}[] = [
  {value:'weight',ar:'وزن',en:'Weight',suffix:'g'}, {value:'piece',ar:'حبة',en:'Piece',suffix:'piece'}, {value:'unit',ar:'قطعة / وحدة',en:'Unit',suffix:'unit'}, {value:'box',ar:'بوكس / صندوق',en:'Box',suffix:'box'}, {value:'liter',ar:'لتر',en:'Liter',suffix:'L'}, {value:'meter',ar:'متر',en:'Meter',suffix:'m'}, {value:'custom',ar:'وحدة مخصصة',en:'Custom',suffix:'unit'}
@@ -39,6 +40,10 @@ export const AdminProductsManager: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
   const [form, setForm] = useState<any>({
     name_ar: '',
@@ -95,6 +100,7 @@ export const AdminProductsManager: React.FC = () => {
         const c = await cRes.json();
         setProducts(Array.isArray(p) ? p : []);
         setCategories(Array.isArray(c) ? c : []);
+        setSelectedIds(new Set());
       }
     } catch (e) {
       console.error(e);
@@ -297,6 +303,36 @@ export const AdminProductsManager: React.FC = () => {
     [products, search]
   );
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filtered.map(p => p.id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size < 1) return;
+    setBulkDeleting(true);
+    setBulkError('');
+    try {
+      await bulkDeleteRequest('products', [...selectedIds]);
+      setSelectedIds(new Set());
+      setShowBulkConfirm(false);
+      await load();
+    } catch (err: any) {
+      setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between gap-3">
@@ -320,10 +356,27 @@ export const AdminProductsManager: React.FC = () => {
         />
       </div>
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        onDelete={() => setShowBulkConfirm(true)}
+        deleting={bulkDeleting}
+      />
+      {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+
       <div className="overflow-x-auto rounded-3xl border border-[#E8F2F2] bg-[#F0FAFA]">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-[#E8F2F2] text-[#6B8C8E]">
+              <th className="p-4 w-10">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                  onChange={toggleSelectAll}
+                  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+                  title={t('تحديد الكل', 'Select all')}
+                />
+              </th>
               <th className="p-4 text-start">{t('المنتج / الفئة', 'Product / Category')}</th>
               <th className="p-4 text-start">{t('الوحدة', 'Unit')}</th>
               <th className="p-4 text-start">{t('خيارات الطحن', 'Grinds')}</th>
@@ -335,14 +388,14 @@ export const AdminProductsManager: React.FC = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-[#6B8C8E]">
+                <td colSpan={7} className="p-8 text-center text-[#6B8C8E]">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0E5257]" />
                   {t('جاري التحميل...', 'Loading...')}
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-[#6B8C8E]">
+                <td colSpan={7} className="p-8 text-center text-[#6B8C8E]">
                   {t('لا توجد منتجات مطابقة', 'No products found')}
                 </td>
               </tr>
@@ -350,7 +403,15 @@ export const AdminProductsManager: React.FC = () => {
               filtered.map(p => {
                 const c = categories.find(x => x.id === p.category_id) || categories.find(x => x.slug === p.category_slug);
                 return (
-                  <tr key={p.id} className="border-b border-[#E8F2F2]/60 hover:bg-white/60 transition">
+                  <tr key={p.id} className={`border-b border-[#E8F2F2]/60 hover:bg-white/60 transition ${selectedIds.has(p.id) ? 'bg-[#0E5257]/5' : ''}`}>
+                    <td className="p-4" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+                      />
+                    </td>
                     <td className="p-4 flex items-center gap-3">
                       <div className="relative">
                         <img src={p.images?.[0] || '/placeholder.png'} className="w-12 h-12 rounded-xl object-cover" alt="" />
@@ -419,6 +480,17 @@ export const AdminProductsManager: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkConfirm && (
+        <BulkDeleteConfirm
+          count={selectedIds.size}
+          entityLabel={t('منتج', 'products')}
+          onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+          onConfirm={handleBulkDelete}
+          confirming={bulkDeleting}
+        />
       )}
 
       {/* Edit/Create Form Modal */}

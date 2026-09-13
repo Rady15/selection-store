@@ -2312,6 +2312,16 @@ class Database {
     return this.state.stockNotifications[idx];
   }
 
+  deleteWholesaleSubmission(id: string) {
+    this.state.wholesaleSubmissions = this.state.wholesaleSubmissions.filter(s => s.id !== id);
+    this.saveState();
+  }
+
+  deleteStockNotification(id: string) {
+    this.state.stockNotifications = this.state.stockNotifications.filter(s => s.id !== id);
+    this.saveState();
+  }
+
   // Banners
   getBanners(position?: string) {
     let banners = this.state.banners.filter(b => b.is_active);

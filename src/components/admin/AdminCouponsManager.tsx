@@ -2,6 +2,7 @@
 import { useLanguage } from '../../context/LanguageContext';
 import { Coupon } from '../../types';
 import { Tag, Plus, Trash2, Edit, X, Percent, DollarSign, Truck, Loader2 } from 'lucide-react';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 export const AdminCouponsManager: React.FC = () => {
   const { language, t } = useLanguage();
@@ -13,6 +14,10 @@ export const AdminCouponsManager: React.FC = () => {
   const [error, setError] = useState('');
   const [deleteConfirmCoupon, setDeleteConfirmCoupon] = useState<Coupon | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed' | 'free_shipping'>('percentage');
@@ -31,6 +36,7 @@ export const AdminCouponsManager: React.FC = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setCoupons(Array.isArray(data) ? data : []);
+      setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
     } finally {
@@ -124,6 +130,36 @@ export const AdminCouponsManager: React.FC = () => {
     setEditingCoupon(null);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === coupons.length && coupons.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(coupons.map(c => c.id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size < 1) return;
+    setBulkDeleting(true);
+    setBulkError('');
+    try {
+      await bulkDeleteRequest('coupons', [...selectedIds]);
+      setSelectedIds(new Set());
+      setShowBulkConfirm(false);
+      await loadCoupons();
+    } catch (err: any) {
+      setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const getDiscountBadge = (c: Coupon) => {
     if (c.discount_type === 'percentage') return `-${c.discount_value}%`;
     if (c.discount_type === 'fixed') return `-${c.discount_value} ﷼`;
@@ -155,6 +191,35 @@ export const AdminCouponsManager: React.FC = () => {
         </button>
       </div>
 
+      <BulkDeleteBar
+        selectedCount={selectedIds.size}
+        onClear={() => setSelectedIds(new Set())}
+        onDelete={() => setShowBulkConfirm(true)}
+        deleting={bulkDeleting}
+      />
+      {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+      {showBulkConfirm && (
+        <BulkDeleteConfirm
+          count={selectedIds.size}
+          entityLabel={t('كوبون', 'coupons')}
+          onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+          onConfirm={handleBulkDelete}
+          confirming={bulkDeleting}
+        />
+      )}
+
+      {coupons.length > 0 && (
+        <div className="flex items-center gap-2 text-xs text-[#6B8C8E]">
+          <input
+            type="checkbox"
+            checked={selectedIds.size === coupons.length}
+            onChange={toggleSelectAll}
+            className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+          />
+          <span>{t('تحديد كل الكوبونات', 'Select all coupons')}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
           <div className="col-span-full p-8 text-center text-[#6B8C8E]">
@@ -167,9 +232,18 @@ export const AdminCouponsManager: React.FC = () => {
           </div>
         ) : (
           coupons.map(c => (
-            <div key={c.id} className="p-5 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-3">
+            <div key={c.id} className={`p-5 rounded-3xl border space-y-3 transition ${selectedIds.has(c.id) ? 'bg-[#0E5257]/5 border-[#0E5257]' : 'bg-[#F0FAFA] border-[#E8F2F2]'}`}>
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-lg text-[#0E5257] font-mono tracking-wider">{c.code}</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(c.id)}
+                    onChange={() => toggleSelect(c.id)}
+                    className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+                    title={t('تحديد', 'Select')}
+                  />
+                  <span className="font-extrabold text-lg text-[#0E5257] font-mono tracking-wider">{c.code}</span>
+                </div>
                 <span className={`text-xs px-2.5 py-0.5 rounded font-bold flex items-center gap-1 ${
                   c.discount_type === 'free_shipping' ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'
                 }`}>

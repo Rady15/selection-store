@@ -2,20 +2,63 @@
 import { useLanguage } from '../../context/LanguageContext';
 import { Review, ProductQuestion } from '../../types';
 import { Star, MessageSquare, CheckCircle, Trash2, Eye, EyeOff } from 'lucide-react';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 export const AdminReviewsManager: React.FC = () => {
- const { language, t } = useLanguage();
- const [reviews, setReviews] = useState<Review[]>([]);
- const [questions, setQuestions] = useState<ProductQuestion[]>([]);
- const [activeTab, setActiveTab] = useState<'reviews' | 'questions'>('reviews');
- const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const { language, t } = useLanguage();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [questions, setQuestions] = useState<ProductQuestion[]>([]);
+  const [activeTab, setActiveTab] = useState<'reviews' | 'questions'>('reviews');
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
- useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, []);
 
- const loadData = () => {
- fetch('/api/admin/reviews').then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => setReviews(d)).catch(() => {});
- fetch('/api/admin/questions').then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => setQuestions(d)).catch(() => {});
- };
+  const loadData = () => {
+  fetch('/api/admin/reviews').then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => setReviews(Array.isArray(d) ? d : [])).catch(() => {});
+  fetch('/api/admin/questions').then(async r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then(d => setQuestions(Array.isArray(d) ? d : [])).catch(() => {});
+  setSelectedIds(new Set());
+  };
+
+  const switchTab = (tab: 'reviews' | 'questions') => {
+  setActiveTab(tab);
+  setSelectedIds(new Set());
+  };
+
+  const currentList = activeTab === 'reviews' ? reviews : questions;
+
+  const toggleSelect = (id: string) => {
+  setSelectedIds(prev => {
+  const next = new Set(prev);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+  });
+  };
+
+  const toggleSelectAll = () => {
+  if (selectedIds.size === currentList.length && currentList.length > 0) setSelectedIds(new Set());
+  else setSelectedIds(new Set(currentList.map(x => x.id)));
+  };
+
+  const handleBulkDelete = async () => {
+  if (selectedIds.size < 1) return;
+  setBulkDeleting(true);
+  setBulkError('');
+  try {
+  await bulkDeleteRequest(activeTab, [...selectedIds]);
+  setSelectedIds(new Set());
+  setShowBulkConfirm(false);
+  loadData();
+  } catch (err: any) {
+  setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+  } finally {
+  setBulkDeleting(false);
+  }
+  };
 
  const handleReviewStatus = async (id: string, status: 'approved' | 'pending') => {
  await fetch(`/api/admin/reviews/${id}/status`, {
@@ -66,16 +109,45 @@ export const AdminReviewsManager: React.FC = () => {
  <p className="text-xs text-[#6B8C8E] mt-0.5">{t('إدارة مراجعات العملاء وأسئلتهم على المنتجات', 'Manage customer reviews and product Q&A')}</p>
  </div>
 
- <div className="flex gap-2">
- <button onClick={() => setActiveTab('reviews')}
- className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'reviews' ? 'bg-[#0E5257] text-white' : 'bg-[#F0FAFA] text-[#6B8C8E] border border-[#E8F2F2]'}`}>
- {t('المراجعات', 'Reviews')} ({reviews.length})
- </button>
- <button onClick={() => setActiveTab('questions')}
- className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'questions' ? 'bg-[#0E5257] text-white' : 'bg-[#F0FAFA] text-[#6B8C8E] border border-[#E8F2F2]'}`}>
- {t('الأسئلة', 'Questions')} ({questions.length})
- </button>
- </div>
+  <div className="flex gap-2">
+  <button onClick={() => switchTab('reviews')}
+  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'reviews' ? 'bg-[#0E5257] text-white' : 'bg-[#F0FAFA] text-[#6B8C8E] border border-[#E8F2F2]'}`}>
+  {t('المراجعات', 'Reviews')} ({reviews.length})
+  </button>
+  <button onClick={() => switchTab('questions')}
+  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'questions' ? 'bg-[#0E5257] text-white' : 'bg-[#F0FAFA] text-[#6B8C8E] border border-[#E8F2F2]'}`}>
+  {t('الأسئلة', 'Questions')} ({questions.length})
+  </button>
+  </div>
+
+  <BulkDeleteBar
+  selectedCount={selectedIds.size}
+  onClear={() => setSelectedIds(new Set())}
+  onDelete={() => setShowBulkConfirm(true)}
+  deleting={bulkDeleting}
+  />
+  {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+  {showBulkConfirm && (
+  <BulkDeleteConfirm
+  count={selectedIds.size}
+  entityLabel={activeTab === 'reviews' ? t('مراجعة', 'reviews') : t('سؤال', 'questions')}
+  onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+  onConfirm={handleBulkDelete}
+  confirming={bulkDeleting}
+  />
+  )}
+
+  {currentList.length > 0 && (
+  <div className="flex items-center gap-2 text-xs text-[#6B8C8E]">
+  <input
+  type="checkbox"
+  checked={selectedIds.size === currentList.length}
+  onChange={toggleSelectAll}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  />
+  <span>{t('تحديد الكل', 'Select all')}</span>
+  </div>
+  )}
 
  {activeTab === 'reviews' && (
  <div className="space-y-3">
@@ -83,10 +155,18 @@ export const AdminReviewsManager: React.FC = () => {
  <div className="p-8 text-center text-[#6B8C8E] bg-[#F0FAFA] rounded-3xl border border-[#E8F2F2]">
  {t('لا توجد مراجعات بعد', 'No reviews yet')}
  </div>
- ) : reviews.map(r => (
- <div key={r.id} className="p-4 rounded-2xl bg-[#F0FAFA] border border-[#E8F2F2]">
- <div className="flex justify-between items-start">
- <div>
+  ) : reviews.map(r => (
+  <div key={r.id} className={`p-4 rounded-2xl border transition ${selectedIds.has(r.id) ? 'bg-[#0E5257]/5 border-[#0E5257]' : 'bg-[#F0FAFA] border-[#E8F2F2]'}`}>
+  <div className="flex justify-between items-start">
+  <div className="flex items-start gap-2">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(r.id)}
+  onChange={() => toggleSelect(r.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer mt-1"
+  title={t('تحديد', 'Select')}
+  />
+  <div>
  <div className="flex items-center gap-2">
  <span className="font-bold text-[#1A2E30] text-sm">{r.customer_name}</span>
  <div className="flex">
@@ -128,15 +208,16 @@ export const AdminReviewsManager: React.FC = () => {
  title={r.status === 'approved' ? t('إخفاء', 'Hide') : t('عرض', 'Show')}>
  {r.status === 'approved' ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
  </button>
- <button onClick={() => handleDeleteReview(r.id)}
- className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-[#6CC6C9] transition cursor-pointer">
- <Trash2 className="w-3.5 h-3.5" />
- </button>
- </div>
- </div>
- </div>
- ))}
- </div>
+  <button onClick={() => handleDeleteReview(r.id)}
+  className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-[#6CC6C9] transition cursor-pointer">
+  <Trash2 className="w-3.5 h-3.5" />
+  </button>
+  </div>
+  </div>
+  </div>
+  </div>
+  ))}
+  </div>
  )}
 
  {activeTab === 'questions' && (
@@ -145,10 +226,18 @@ export const AdminReviewsManager: React.FC = () => {
  <div className="p-8 text-center text-[#6B8C8E] bg-[#F0FAFA] rounded-3xl border border-[#E8F2F2]">
  {t('لا توجد أسئلة بعد', 'No questions yet')}
  </div>
- ) : questions.map(q => (
- <div key={q.id} className="p-4 rounded-2xl bg-[#F0FAFA] border border-[#E8F2F2]">
- <div className="flex justify-between items-start">
- <div className="flex-1">
+  ) : questions.map(q => (
+  <div key={q.id} className={`p-4 rounded-2xl border transition ${selectedIds.has(q.id) ? 'bg-[#0E5257]/5 border-[#0E5257]' : 'bg-[#F0FAFA] border-[#E8F2F2]'}`}>
+  <div className="flex justify-between items-start">
+  <div className="flex items-start gap-2 flex-1">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(q.id)}
+  onChange={() => toggleSelect(q.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer mt-1"
+  title={t('تحديد', 'Select')}
+  />
+  <div className="flex-1">
  <div className="flex items-center gap-2">
  <span className="font-bold text-[#1A2E30] text-sm">{q.customer_name || t('مجهول', 'Anonymous')}</span>
  <MessageSquare className="w-3 h-3 text-[#6CC6C9]" />
@@ -175,17 +264,18 @@ export const AdminReviewsManager: React.FC = () => {
  }
  }}
  />
- </div>
- )}
- </div>
- <button onClick={() => handleDeleteQuestion(q.id)}
- className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-[#6CC6C9] transition cursor-pointer ml-2">
- <Trash2 className="w-3.5 h-3.5" />
- </button>
- </div>
- </div>
- ))}
- </div>
+  </div>
+  )}
+  </div>
+  <button onClick={() => handleDeleteQuestion(q.id)}
+  className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-600 hover:text-[#6CC6C9] transition cursor-pointer ml-2">
+  <Trash2 className="w-3.5 h-3.5" />
+  </button>
+  </div>
+  </div>
+  </div>
+  ))}
+  </div>
  )}
  </div>
  );

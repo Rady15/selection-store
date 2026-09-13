@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { Banner } from '../../types';
 import { Image, Plus, Trash2, Edit, X, Eye, EyeOff, Palette, Loader2 } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
+import { BulkDeleteBar, BulkDeleteConfirm, bulkDeleteRequest } from './BulkDeleteBar';
 
 export const AdminBannersManager: React.FC = () => {
   const { language, t } = useLanguage();
@@ -14,6 +15,10 @@ export const AdminBannersManager: React.FC = () => {
   const [error, setError] = useState('');
   const [deleteConfirmBanner, setDeleteConfirmBanner] = useState<Banner | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
   const [titleAr, setTitleAr] = useState('');
   const [titleEn, setTitleEn] = useState('');
@@ -38,6 +43,7 @@ export const AdminBannersManager: React.FC = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setBanners(Array.isArray(data) ? data : []);
+      setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
     } finally {
@@ -165,6 +171,36 @@ export const AdminBannersManager: React.FC = () => {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === banners.length && banners.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(banners.map(b => b.id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size < 1) return;
+    setBulkDeleting(true);
+    setBulkError('');
+    try {
+      await bulkDeleteRequest('banners', [...selectedIds]);
+      setSelectedIds(new Set());
+      setShowBulkConfirm(false);
+      await loadBanners();
+    } catch (err: any) {
+      setBulkError(err.message || t('فشل الحذف الجماعي', 'Bulk delete failed'));
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
  const getPositionBadge = (pos: string) => {
  const colors: Record<string, string> = {
  hero: 'bg-amber-900/50 text-amber-300',
@@ -201,12 +237,38 @@ export const AdminBannersManager: React.FC = () => {
  </button>
  </div>
 
- <div className="bg-[#F0FAFA] rounded-2xl border border-[#E8F2F2] overflow-hidden">
- <div className="overflow-x-auto">
- <table className="w-full">
- <thead>
- <tr className="border-b border-[#E8F2F2]">
- <th className="text-left p-4 text-sm font-medium text-[#86A2A4]">{t('معاينة', 'Preview')}</th>
+  <BulkDeleteBar
+  selectedCount={selectedIds.size}
+  onClear={() => setSelectedIds(new Set())}
+  onDelete={() => setShowBulkConfirm(true)}
+  deleting={bulkDeleting}
+  />
+  {bulkError && <div className="p-3 bg-red-50 text-red-600 rounded-xl text-xs">{bulkError}</div>}
+  {showBulkConfirm && (
+  <BulkDeleteConfirm
+  count={selectedIds.size}
+  entityLabel={t('بانر', 'banners')}
+  onCancel={() => !bulkDeleting && setShowBulkConfirm(false)}
+  onConfirm={handleBulkDelete}
+  confirming={bulkDeleting}
+  />
+  )}
+
+  <div className="bg-[#F0FAFA] rounded-2xl border border-[#E8F2F2] overflow-hidden">
+  <div className="overflow-x-auto">
+  <table className="w-full">
+  <thead>
+  <tr className="border-b border-[#E8F2F2]">
+  <th className="p-4 w-10">
+  <input
+  type="checkbox"
+  checked={banners.length > 0 && selectedIds.size === banners.length}
+  onChange={toggleSelectAll}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  title={t('تحديد الكل', 'Select all')}
+  />
+  </th>
+  <th className="text-left p-4 text-sm font-medium text-[#86A2A4]">{t('معاينة', 'Preview')}</th>
  <th className="text-left p-4 text-sm font-medium text-[#86A2A4]">{t('العنوان', 'Title')}</th>
  <th className="text-left p-4 text-sm font-medium text-[#86A2A4]">{t('الموضع', 'Position')}</th>
  <th className="text-left p-4 text-sm font-medium text-[#86A2A4]">{t('الحالة', 'Status')}</th>
@@ -216,9 +278,17 @@ export const AdminBannersManager: React.FC = () => {
  </tr>
  </thead>
  <tbody>
- {banners.map(banner => (
- <tr key={banner.id} className="border-b border-[#E8F2F2]/50 hover:bg-[#E8F2F2]/30 transition">
- <td className="p-4">
+  {banners.map(banner => (
+  <tr key={banner.id} className={`border-b border-[#E8F2F2]/50 hover:bg-[#E8F2F2]/30 transition ${selectedIds.has(banner.id) ? 'bg-[#0E5257]/5' : ''}`}>
+  <td className="p-4">
+  <input
+  type="checkbox"
+  checked={selectedIds.has(banner.id)}
+  onChange={() => toggleSelect(banner.id)}
+  className="w-4 h-4 accent-[#0E5257] cursor-pointer"
+  />
+  </td>
+  <td className="p-4">
  <div
  className="w-24 h-14 rounded-lg overflow-hidden flex items-center justify-center text-xs font-bold"
  style={{ backgroundColor: banner.bg_color, color: banner.text_color }}
@@ -285,7 +355,7 @@ export const AdminBannersManager: React.FC = () => {
               ))}
               {banners.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-[#86A2A4] text-sm">
+                  <td colSpan={8} className="p-8 text-center text-[#86A2A4] text-sm">
                     {t('لا توجد بانرات بعد', 'No banners yet')}
                   </td>
                 </tr>
