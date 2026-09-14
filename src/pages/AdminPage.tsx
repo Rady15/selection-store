@@ -15,6 +15,7 @@ import AdminCategoriesManager from '../components/admin/AdminCategoriesManager';
 import AdminBannersManager from '../components/admin/AdminBannersManager';
 import AdminPaymentsManager from '../components/admin/AdminPaymentsManager';
 import AdminPaymentGatewaysManager from '../components/admin/AdminPaymentGatewaysManager';
+import AdminShippingManager from '../components/admin/AdminShippingManager';
 import AdminAnnouncementManager from '../components/admin/AdminAnnouncementManager';
 import AdminSettingsManager from '../components/admin/AdminSettingsManager';
 import AdminNewsletterManager from '../components/admin/AdminNewsletterManager';
@@ -24,7 +25,7 @@ import AdminProfileManager from '../components/admin/AdminProfileManager';
 const VALID_TABS = [
   'overview', 'products', 'orders', 'customers', 'reviews', 'coupons',
   'homepage', 'contact', 'stock-alerts', 'wholesale', 'categories',
-  'banners', 'payments', 'payment-gateways', 'announcement', 'settings', 'quiz', 'newsletter', 'profile'
+  'banners', 'payments', 'payment-gateways', 'shipping', 'announcement', 'settings', 'quiz', 'newsletter', 'profile'
 ];
 
 const getTabFromPath = (): string => {
@@ -67,6 +68,7 @@ const renderTabContent = () => {
   case 'banners': return <AdminBannersManager />;
   case 'payments': return <AdminPaymentsManager />;
   case 'payment-gateways': return <AdminPaymentGatewaysManager />;
+  case 'shipping': return <AdminShippingManager />;
   case 'announcement': return <AdminAnnouncementManager />;
   case 'settings': return <AdminSettingsManager />;
   case 'quiz': return <AdminQuizManager />;

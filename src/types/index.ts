@@ -163,7 +163,7 @@ export interface User {
 }
 
 export type OrderStatus = 'pending' | 'paid' | 'roasting' | 'shipped' | 'delivered' | 'cancelled';
-export type PaymentMethod = 'mada' | 'apple_pay' | 'visa' | 'cod';
+export type PaymentMethod = 'mada' | 'apple_pay' | 'visa' | 'cod' | 'tabby' | 'tamara' | 'paymob';
 export type ShippingMethod = 'smsa' | 'aramex' | 'fastlo' | 'store_pickup';
 
 export interface OrderItem {
@@ -500,5 +500,24 @@ export interface PaymentGatewayConfig {
   supported_methods: string[];
   test_status?: 'connected' | 'error' | 'untested';
   test_message?: string;
+  additional_settings?: Record<string, any>;
+}
+
+export interface ShippingProviderConfig {
+  id: string; // 'smsa' | 'aramex' | 'fastlo' | 'store_pickup' | custom
+  name_ar: string;
+  name_en: string;
+  description_ar?: string;
+  description_en?: string;
+  enabled: boolean;
+  base_fee: number; // SAR flat fee (0 = free)
+  cod_supported: boolean;
+  tracking_url_template?: string; // e.g. https://.../tracking/{tracking_number}
+  api_base_url?: string;
+  api_key?: string;
+  api_key_configured?: boolean;
+  api_key_masked?: string;
+  account?: string;
+  password?: string;
   additional_settings?: Record<string, any>;
 }

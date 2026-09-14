@@ -1124,6 +1124,34 @@ app.post('/api/admin/payment-gateways/:id/test', async (req, res) => {
       }
     } else if (gateway.id === 'cod') {
       testResult = { status: 'connected', message: 'COD is always available (no external connection needed)' };
+    } else if (gateway.id === 'tabby') {
+      const { getTabbyConfig } = await import('./integrations/tabby.js');
+      const cfg = getTabbyConfig();
+      if (!cfg) {
+        testResult = { status: 'error', message: 'Tabby requires secret key + merchant code (Admin > Payment Gateways)' };
+      } else if (gateway.mode === 'live' && cfg.secretKey.startsWith('sk_test_')) {
+        testResult = { status: 'error', message: 'Live mode selected but the secret key is a TEST key (sk_test_*)' };
+      } else if (gateway.mode === 'test' && cfg.secretKey.startsWith('sk_live_')) {
+        testResult = { status: 'error', message: 'Test mode selected but the secret key is a LIVE key (sk_live_*)' };
+      } else {
+        testResult = { status: 'connected', message: `Tabby configuration valid (${gateway.mode} mode, merchant ${cfg.merchantCode}). Checkout sessions will be created live at payment time.` };
+      }
+    } else if (gateway.id === 'tamara') {
+      const { getTamaraConfig } = await import('./integrations/tamara.js');
+      const cfg = getTamaraConfig();
+      if (!cfg) {
+        testResult = { status: 'error', message: 'Tamara requires an API token (Admin > Payment Gateways)' };
+      } else {
+        testResult = { status: 'connected', message: `Tamara configuration valid (${cfg.mode} mode, API ${cfg.baseUrl}). Checkout sessions will be created live at payment time.` };
+      }
+    } else if (gateway.id === 'paymob') {
+      const { getPaymobConfig } = await import('./integrations/paymob.js');
+      const cfg = getPaymobConfig();
+      if (!cfg) {
+        testResult = { status: 'error', message: 'Paymob requires public key + secret key + HMAC secret + at least one integration ID' };
+      } else {
+        testResult = { status: 'connected', message: `Paymob configuration valid (${cfg.integrationIds.length} card integration(s)). Payment intentions will be created live at payment time.` };
+      }
     } else {
       testResult = { status: 'untested', message: 'Test not implemented for this gateway yet' };
     }
@@ -1136,10 +1164,68 @@ app.post('/api/admin/payment-gateways/:id/test', async (req, res) => {
   }
 });
 
-// Public endpoint for storefront checkout
-app.get('/api/public/payment-methods', (req, res) => {
-  const gateways = db.getPaymentGateways(false).filter(g => g.enabled);
-  res.json(gateways);
+// Public endpoint for storefront checkout.
+// Conditional visibility: a gateway is listed ONLY when it is enabled AND
+// fully credentialed. No keys => hidden from checkout automatically.
+app.get('/api/public/payment-methods', async (req, res) => {
+  const sandboxAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_SANDBOX_PAYMENTS === 'true';
+  const stripeSecret = process.env.STRIPE_SECRET_KEY || db.getPaymentGateway('stripe', true)?.secret_key || '';
+  const visible = [];
+  for (const g of db.getPaymentGateways(false)) {
+    if (!g.enabled) continue;
+    if (g.id === 'stripe') {
+      if (!stripeSecret && !sandboxAllowed) continue;
+      visible.push(g);
+    } else if (g.id === 'cod') {
+      visible.push(g);
+    } else if (g.id === 'tabby') {
+      const { getTabbyConfig } = await import('./integrations/tabby.js');
+      if (getTabbyConfig()) visible.push(g);
+    } else if (g.id === 'tamara') {
+      const { getTamaraConfig } = await import('./integrations/tamara.js');
+      if (getTamaraConfig()) visible.push(g);
+    } else if (g.id === 'paymob') {
+      const { getPaymobConfig } = await import('./integrations/paymob.js');
+      if (getPaymobConfig()) visible.push(g);
+    }
+  }
+  res.json(visible);
+});
+
+// Shipping Providers (admin)
+app.get('/api/admin/shipping-providers', (req, res) => {
+  res.json(db.getShippingProviders(false));
+});
+
+app.put('/api/admin/shipping-providers/:id', (req, res) => {
+  try {
+    const updates = req.body || {};
+    const allowed = ['enabled', 'base_fee', 'cod_supported', 'tracking_url_template', 'api_base_url', 'api_key', 'account', 'password', 'additional_settings', 'name_ar', 'name_en', 'description_ar', 'description_en'];
+    const payload: any = {};
+    for (const key of allowed) {
+      if (updates[key] !== undefined) payload[key] = updates[key];
+    }
+    db.saveShippingProvider(req.params.id, payload);
+    res.json(db.getShippingProvider(req.params.id, false));
+  } catch (err: any) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// Public shipping methods for storefront checkout (enabled only, no secrets)
+app.get('/api/public/shipping-methods', (req, res) => {
+  const methods = db.getShippingProviders(false)
+    .filter(p => p.enabled)
+    .map(p => ({
+      id: p.id,
+      name_ar: p.name_ar,
+      name_en: p.name_en,
+      description_ar: p.description_ar,
+      description_en: p.description_en,
+      base_fee: p.base_fee,
+      cod_supported: p.cod_supported
+    }));
+  res.json(methods);
 });
 
 // Export CSV Endpoint
@@ -1397,6 +1483,198 @@ app.post('/api/payments/sandbox-confirm', requireAuth, async (req: Authenticated
   }
 });
 
+app.post('/api/payments/tabby/create', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { createTabbySession } = await import('./integrations/tabby.js');
+    const trustedOrder = buildTrustedOrder(req.body?.order, req.authUser);
+    const appUrl = (process.env.APP_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
+    const session = await createTabbySession(trustedOrder, appUrl);
+    db.savePendingPayment(`tabby-${session.session_id}`, { ...trustedOrder, payment_method: 'tabby' });
+    res.json({ checkout_url: session.redirect_url, session_id: session.session_id });
+  } catch (err: any) {
+    console.error('[Tabby] create error:', err?.message || err);
+    res.status(400).json({ error_ar: err.message || 'تعذر بدء الدفع عبر تابي', error_en: err.message || 'Could not start Tabby payment' });
+  }
+});
+
+app.post('/api/payments/tabby/confirm', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { verifyAndCaptureTabby } = await import('./integrations/tabby.js');
+    const sessionId = String(req.body?.session_id || '');
+    if (!sessionId) return res.status(400).json({ error_ar: 'معرّف الجلسة مطلوب', error_en: 'session_id is required' });
+    const paymentRef = `tabby-${sessionId}`;
+    const existing = db.getOrderByPaymentIntent(paymentRef);
+    if (existing) {
+      if (existing.user_id !== req.authUser.id && req.authUser.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+      return res.json(existing);
+    }
+    const pending = db.getPendingPayment(paymentRef);
+    if (!pending || pending.user_id !== req.authUser.id) return res.status(403).json({ error_ar: 'جلسة الدفع غير متاحة', error_en: 'Payment session is not available' });
+    const check = await verifyAndCaptureTabby(sessionId, Number(pending.total_amount));
+    if (!check.ok) return res.status(400).json({ error_ar: 'لم يكتمل الدفع عبر تابي', error_en: 'Tabby payment was not completed', status: check.status });
+    const order = db.createOrder({ ...pending, status: 'pending', payment_status: 'paid', payment_intent_id: paymentRef });
+    db.removePendingPayment(paymentRef);
+    await db.flush();
+    res.json(order);
+  } catch (err: any) {
+    console.error('[Tabby] confirm error:', err?.message || err);
+    res.status(400).json({ error_ar: err.message || 'تعذر تأكيد الدفع', error_en: err.message || 'Could not confirm payment' });
+  }
+});
+
+app.post('/api/payments/tabby/webhook', rateLimit({ windowMs: 60 * 1000, max: 60 }), async (req: any, res) => {
+  try {
+    const { verifyAndCaptureTabby } = await import('./integrations/tabby.js');
+    const body = req.body || {};
+    const sessionId = String(body.payment_id || body.paymentId || body.id || '');
+    if (!sessionId) return res.json({ received: true });
+    const paymentRef = `tabby-${sessionId}`;
+    if (db.getOrderByPaymentIntent(paymentRef)) return res.json({ received: true });
+    const pending = db.getPendingPayment(paymentRef);
+    if (!pending) return res.json({ received: true });
+    const check = await verifyAndCaptureTabby(sessionId, Number(pending.total_amount));
+    if (check.ok) {
+      db.createOrder({ ...pending, status: 'pending', payment_status: 'paid', payment_intent_id: paymentRef });
+      db.removePendingPayment(paymentRef);
+      await db.flush();
+    }
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error('[Tabby] webhook error:', err?.message || err);
+    res.json({ received: true });
+  }
+});
+
+app.post('/api/payments/tamara/create', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { createTamaraSession } = await import('./integrations/tamara.js');
+    const trustedOrder = buildTrustedOrder(req.body?.order, req.authUser);
+    const appUrl = (process.env.APP_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
+    const session = await createTamaraSession(trustedOrder, appUrl);
+    db.savePendingPayment(`tamara-${session.order_id}`, { ...trustedOrder, payment_method: 'tamara' });
+    res.json({ checkout_url: session.redirect_url, session_id: session.order_id });
+  } catch (err: any) {
+    console.error('[Tamara] create error:', err?.message || err);
+    res.status(400).json({ error_ar: err.message || 'تعذر بدء الدفع عبر تمارا', error_en: err.message || 'Could not start Tamara payment' });
+  }
+});
+
+app.post('/api/payments/tamara/confirm', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { verifyTamaraOrder } = await import('./integrations/tamara.js');
+    const orderId = String(req.body?.session_id || req.body?.order_id || '');
+    if (!orderId) return res.status(400).json({ error_ar: 'معرّف الطلب مطلوب', error_en: 'order_id is required' });
+    const paymentRef = `tamara-${orderId}`;
+    const existing = db.getOrderByPaymentIntent(paymentRef);
+    if (existing) {
+      if (existing.user_id !== req.authUser.id && req.authUser.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+      return res.json(existing);
+    }
+    const pending = db.getPendingPayment(paymentRef);
+    if (!pending || pending.user_id !== req.authUser.id) return res.status(403).json({ error_ar: 'جلسة الدفع غير متاحة', error_en: 'Payment session is not available' });
+    const check = await verifyTamaraOrder(orderId, Number(pending.total_amount));
+    if (!check.ok) return res.status(400).json({ error_ar: 'لم يكتمل الدفع عبر تمارا', error_en: 'Tamara payment was not completed', status: check.status });
+    const order = db.createOrder({ ...pending, status: 'pending', payment_status: 'paid', payment_intent_id: paymentRef });
+    db.removePendingPayment(paymentRef);
+    await db.flush();
+    res.json(order);
+  } catch (err: any) {
+    console.error('[Tamara] confirm error:', err?.message || err);
+    res.status(400).json({ error_ar: err.message || 'تعذر تأكيد الدفع', error_en: err.message || 'Could not confirm payment' });
+  }
+});
+
+app.post('/api/payments/tamara/webhook', rateLimit({ windowMs: 60 * 1000, max: 60 }), async (req: any, res) => {
+  try {
+    const { verifyTamaraOrder } = await import('./integrations/tamara.js');
+    const body = req.body || {};
+    const orderId = String(body.order_id || body.orderId || body.order_reference_id || '');
+    if (!orderId) return res.json({ received: true });
+    const paymentRef = `tamara-${orderId}`;
+    if (db.getOrderByPaymentIntent(paymentRef)) return res.json({ received: true });
+    const pending = db.getPendingPayment(paymentRef);
+    if (!pending) return res.json({ received: true });
+    const check = await verifyTamaraOrder(orderId, Number(pending.total_amount));
+    if (check.ok) {
+      db.createOrder({ ...pending, status: 'pending', payment_status: 'paid', payment_intent_id: paymentRef });
+      db.removePendingPayment(paymentRef);
+      await db.flush();
+    }
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error('[Tamara] webhook error:', err?.message || err);
+    res.json({ received: true });
+  }
+});
+
+app.post('/api/payments/paymob/intention', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { createPaymobIntention } = await import('./integrations/paymob.js');
+    const trustedOrder = buildTrustedOrder(req.body?.order, req.authUser);
+    const appUrl = (process.env.APP_URL || '').replace(/\/$/, '') || `${req.protocol}://${req.get('host')}`;
+    const intention = await createPaymobIntention(trustedOrder, appUrl);
+    db.savePendingPayment(`paymob-${intention.intention_id}`, { ...trustedOrder, payment_method: 'paymob' });
+    res.json({ checkout_url: intention.checkout_url, session_id: intention.intention_id });
+  } catch (err: any) {
+    console.error('[Paymob] intention error:', err?.message || err);
+    res.status(400).json({ error_ar: err.message || 'تعذر بدء الدفع', error_en: err.message || 'Could not start payment' });
+  }
+});
+
+async function finalizePaymobCallback(payload: any): Promise<any> {
+  const { verifyPaymobHmac } = await import('./integrations/paymob.js');
+  const check = verifyPaymobHmac(payload);
+  if (!check.success) {
+    const err: any = new Error('Paymob payment was not successful');
+    err.status = 400;
+    throw err;
+  }
+  // Match the callback to a staged order: prefer the merchant order reference,
+  // fall back to scanning pending payments by amount.
+  const merchantRef = String(payload?.merchant_order_id || payload?.order_info || '');
+  let pendingKey = '';
+  let pending: any = null;
+  for (const { key, value } of db.listPendingPayments()) {
+    if (!key.startsWith('paymob-')) continue;
+    const candidate = value as any;
+    if (merchantRef && key.includes(merchantRef)) { pendingKey = key; pending = candidate; break; }
+    if (!pending && Math.abs(Math.round(Number(candidate?.total_amount) * 100) - check.amountCents) <= 1) {
+      pendingKey = key; pending = candidate;
+    }
+  }
+  if (!pending) throw Object.assign(new Error('Payment session is not available'), { status: 403 });
+  const paymentRef = `paymob-${String(payload?.id || pendingKey.replace('paymob-', ''))}`;
+  const existing = db.getOrderByPaymentIntent(paymentRef);
+  if (existing) return existing;
+  const order = db.createOrder({ ...pending, status: 'pending', payment_status: 'paid', payment_intent_id: paymentRef });
+  db.removePendingPayment(pendingKey);
+  await db.flush();
+  return order;
+}
+
+app.post('/api/payments/paymob/confirm', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const order = await finalizePaymobCallback(req.body || {});
+    if (order.user_id !== req.authUser.id && req.authUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    res.json(order);
+  } catch (err: any) {
+    console.error('[Paymob] confirm error:', err?.message || err);
+    res.status(err?.status || 400).json({ error_ar: err.message || 'تعذر تأكيد الدفع', error_en: err.message || 'Could not confirm payment' });
+  }
+});
+
+app.post('/api/payments/paymob/webhook', rateLimit({ windowMs: 60 * 1000, max: 60 }), async (req: any, res) => {
+  try {
+    await finalizePaymobCallback(req.body || {});
+    res.json({ received: true });
+  } catch (err: any) {
+    console.error('[Paymob] webhook error:', err?.message || err);
+    res.json({ received: true });
+  }
+});
+
 app.post('/api/payments/webhook', async (req: any, res) => {
   const sig = req.headers['stripe-signature'] as string;
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -1439,7 +1717,7 @@ app.post('/api/payments/webhook', async (req: any, res) => {
 import { createSmsaShipment, trackSmsaShipment } from './integrations/smsa.js';
 
 // Create shipment for an order
-app.post('/api/admin/orders/:id/shipment', (req, res) => {
+app.post('/api/admin/orders/:id/shipment', async (req, res) => {
   const order = db.getOrderByNumber(req.params.id) || db.getOrderById?.(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
@@ -1448,7 +1726,7 @@ app.post('/api/admin/orders/:id/shipment', (req, res) => {
     return sum + (weightNum * item.quantity);
   }, 0);
 
-  const shipment = createSmsaShipment({
+  const shipment = await createSmsaShipment({
     order_id: order.id,
     order_number: order.order_number,
     recipient_name: order.customer_name,

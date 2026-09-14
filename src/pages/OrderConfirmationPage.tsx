@@ -32,10 +32,13 @@ const PAYMENT_STATUS_LABELS: Record<string, [string, string]> = {
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, [string, string]> = {
- mada: ['مدى MADA', 'Mada'],
- visa: ['فيزا / ماستركارد (Stripe)', 'Visa / Mastercard (Stripe)'],
- apple_pay: ['Apple Pay (Stripe)', 'Apple Pay (Stripe)'],
- cod: ['الدفع عند الاستلام', 'Cash on Delivery']
+  mada: ['مدى MADA', 'Mada'],
+  visa: ['فيزا / ماستركارد (Stripe)', 'Visa / Mastercard (Stripe)'],
+  apple_pay: ['Apple Pay (Stripe)', 'Apple Pay (Stripe)'],
+  cod: ['الدفع عند الاستلام', 'Cash on Delivery'],
+  tabby: ['تابي - 4 دفعات (Tabby)', 'Tabby - 4 Payments'],
+  tamara: ['تمارا - تقسيط (Tamara)', 'Tamara Installments'],
+  paymob: ['بطاقة عبر Paymob', 'Card via Paymob']
 };
 
 const SHIPPING_METHOD_LABELS: Record<string, [string, string]> = {

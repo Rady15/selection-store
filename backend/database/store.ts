@@ -23,7 +23,8 @@ import {
   QuizSettings,
   QuizConfig,
   AssistantConfig,
-  PaymentGatewayConfig
+  PaymentGatewayConfig,
+  ShippingProviderConfig
 } from '../../src/types';
 
 const DATA_FILE = process.env.VERCEL === '1'
@@ -86,6 +87,7 @@ export interface DatabaseState {
   quizConfig: QuizConfig;
   assistantConfig: AssistantConfig;
   paymentGateways: PaymentGatewayConfig[];
+  shippingProviders: ShippingProviderConfig[];
   // Stripe payments are only persisted as orders AFTER the payment succeeds.
   // Until then the full order payload is staged here keyed by payment_intent_id
   // (or a temporary sandbox key) so nothing appears in the dashboards early.
@@ -1107,6 +1109,69 @@ function maskSecret(key?: string): string {
   return `••••••••••••${trimmed.slice(-4)}`;
 }
 
+const initialShippingProviders: ShippingProviderConfig[] = [
+  {
+    id: 'smsa',
+    name_ar: 'سمسا إكسبريس (SMSA Express)',
+    name_en: 'SMSA Express',
+    description_ar: 'الشحن السريع داخل المملكة مع التتبع والدفع عند الاستلام',
+    description_en: 'Express delivery across Saudi Arabia with tracking and COD',
+    enabled: true,
+    base_fee: 25,
+    cod_supported: true,
+    tracking_url_template: 'https://www.smsaexpress.com/tracking/{tracking_number}',
+    api_base_url: '',
+    api_key: '',
+    account: '',
+    password: ''
+  },
+  {
+    id: 'aramex',
+    name_ar: 'أرامكس (Aramex)',
+    name_en: 'Aramex',
+    description_ar: 'شحن محلي ودولي مع حلول التجارة الإلكترونية',
+    description_en: 'Domestic and international e-commerce shipping',
+    enabled: true,
+    base_fee: 28,
+    cod_supported: true,
+    tracking_url_template: 'https://www.aramex.com/track/shipments?ShipmentNumber={tracking_number}',
+    api_base_url: '',
+    api_key: '',
+    account: '',
+    password: ''
+  },
+  {
+    id: 'fastlo',
+    name_ar: 'فاستلو (Fastlo)',
+    name_en: 'Fastlo',
+    description_ar: 'توصيل سريع داخل المدن الرئيسية',
+    description_en: 'Fast last-mile delivery in major cities',
+    enabled: true,
+    base_fee: 22,
+    cod_supported: true,
+    tracking_url_template: '',
+    api_base_url: '',
+    api_key: '',
+    account: '',
+    password: ''
+  },
+  {
+    id: 'store_pickup',
+    name_ar: 'الاستلام من الفرع (Store Pickup)',
+    name_en: 'Store Pickup',
+    description_ar: 'استلم طلبك بنفسك من مقر المحمصة بدون رسوم شحن',
+    description_en: 'Pick up your order from the roastery with no shipping fee',
+    enabled: true,
+    base_fee: 0,
+    cod_supported: false,
+    tracking_url_template: '',
+    api_base_url: '',
+    api_key: '',
+    account: '',
+    password: ''
+  }
+];
+
 class Database {
   private state: DatabaseState;
 
@@ -1131,6 +1196,7 @@ class Database {
       quizConfig: initialQuizConfig,
       assistantConfig: initialAssistantConfig,
       paymentGateways: initialPaymentGateways,
+      shippingProviders: initialShippingProviders,
       pendingPayments: {},
       auditLogs: []
     };
@@ -1245,6 +1311,7 @@ class Database {
       quizConfig: Array.isArray(parsed.quizConfig) ? { ...initialQuizConfig, questions: parsed.quizConfig } : (parsed.quizConfig?.questions ? parsed.quizConfig : initialQuizConfig),
       assistantConfig: parsed.assistantConfig ? { ...initialAssistantConfig, ...parsed.assistantConfig, quick_actions: Array.isArray(parsed.assistantConfig.quick_actions) ? parsed.assistantConfig.quick_actions : initialAssistantConfig.quick_actions } : initialAssistantConfig,
       paymentGateways: Array.isArray(parsed.paymentGateways) && parsed.paymentGateways.length > 0 ? parsed.paymentGateways : initialPaymentGateways,
+      shippingProviders: Array.isArray(parsed.shippingProviders) && parsed.shippingProviders.length > 0 ? parsed.shippingProviders : initialShippingProviders,
       pendingPayments: parsed.pendingPayments || {},
       auditLogs: parsed.auditLogs || []
     };
@@ -1768,6 +1835,11 @@ class Database {
 
   getPendingPayment(key: string) {
     return (this.state.pendingPayments || {})[key] || null;
+  }
+
+  /** Lists staged (not yet completed) gateway payments for callback matching. */
+  listPendingPayments(): Array<{ key: string; value: any }> {
+    return Object.entries(this.state.pendingPayments || {}).map(([key, value]) => ({ key, value }));
   }
 
   savePendingPayment(key: string, data: any) {
@@ -2451,6 +2523,71 @@ class Database {
     this.state.paymentGateways[idx] = next;
     this.saveState();
     return next;
+  }
+
+  getShippingProviders(includeSecrets = false): ShippingProviderConfig[] {
+    return this.state.shippingProviders.map(p => {
+      if (includeSecrets) return { ...p };
+      return {
+        ...p,
+        api_key: undefined,
+        api_key_configured: !!p.api_key,
+        api_key_masked: maskSecret(p.api_key),
+        password: undefined
+      };
+    });
+  }
+
+  getShippingProvider(id: string, includeSecrets = false): ShippingProviderConfig | undefined {
+    const provider = this.state.shippingProviders.find(p => p.id === id);
+    if (!provider) return undefined;
+    if (includeSecrets) return { ...provider };
+    return {
+      ...provider,
+      api_key: undefined,
+      api_key_configured: !!provider.api_key,
+      api_key_masked: maskSecret(provider.api_key),
+      password: undefined
+    };
+  }
+
+  saveShippingProvider(id: string, updates: Partial<ShippingProviderConfig>): ShippingProviderConfig {
+    const idx = this.state.shippingProviders.findIndex(p => p.id === id);
+    if (idx < 0) throw new Error('Shipping provider not found');
+    const current = this.state.shippingProviders[idx];
+    const next: ShippingProviderConfig = {
+      ...current,
+      ...updates,
+      id: current.id,
+      base_fee: Math.max(0, Number((updates as any).base_fee ?? current.base_fee))
+    };
+    this.state.shippingProviders[idx] = next;
+    this.saveState();
+    return next;
+  }
+
+  /** Server-side shipping fee lookup used by trusted order calculation. */
+  getShippingFee(method: string): number {
+    const provider = this.state.shippingProviders.find(p => p.id === method);
+    if (provider) return Math.max(0, Number(provider.base_fee) || 0);
+    const fallback: Record<string, number> = { aramex: 28, smsa: 25, fastlo: 22, store_pickup: 0 };
+    return fallback[method] ?? 25;
+  }
+
+  /** Whether a shipping method is currently enabled for checkout. */
+  isShippingMethodEnabled(method: string): boolean {
+    const provider = this.state.shippingProviders.find(p => p.id === method);
+    return provider ? provider.enabled !== false : ['smsa', 'aramex', 'fastlo', 'store_pickup'].includes(method);
+  }
+
+  buildTrackingUrl(method: string, trackingNumber: string): string {
+    const provider = this.state.shippingProviders.find(p => p.id === method);
+    const template = provider?.tracking_url_template || '';
+    if (template && template.includes('{tracking_number}')) {
+      return template.replace('{tracking_number}', encodeURIComponent(trackingNumber));
+    }
+    if (template) return template;
+    return `https://www.smsaexpress.com/tracking/${encodeURIComponent(trackingNumber)}`;
   }
 }
 

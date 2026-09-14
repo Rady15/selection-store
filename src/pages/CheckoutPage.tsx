@@ -4,7 +4,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
-import { saudiCities, shippingProviders } from '../utils/coffee';
+import { saudiCities } from '../utils/coffee';
 import { PaymentMethod, Address } from '../types';
 import { StripePaymentSection } from '../components/checkout/StripePaymentSection';
 import {
@@ -55,12 +55,59 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
  postal_code: '',
  delivery_notes: ''
  });
- const [shippingProviderId, setShippingProviderId] = useState('smsa');
- const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mada');
- const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shippingProviderId, setShippingProviderId] = useState('smsa');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mada');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
- const stripeMethods: PaymentMethod[] = ['mada', 'visa', 'apple_pay'];
- const isStripeMethod = stripeMethods.includes(paymentMethod);
+  const stripeMethods: PaymentMethod[] = ['mada', 'visa', 'apple_pay'];
+
+  // Dynamically loaded from the server: only enabled + credentialed gateways
+  // and carriers are offered. No keys => hidden automatically.
+  const [gatewayList, setGatewayList] = useState<any[] | null>(null);
+  const [shippingMethods, setShippingMethods] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/public/payment-methods')
+      .then(res => (res.ok ? res.json() : []))
+      .then(data => setGatewayList(Array.isArray(data) ? data : []))
+      .catch(() => setGatewayList([]));
+    fetch('/api/public/shipping-methods')
+      .then(res => (res.ok ? res.json() : []))
+      .then(data => setShippingMethods(Array.isArray(data) && data.length ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const stripeVisible = !gatewayList || gatewayList.some(g => g.id === 'stripe');
+  const codVisible = !gatewayList || gatewayList.some(g => g.id === 'cod');
+  const tabbyVisible = !!gatewayList?.some(g => g.id === 'tabby');
+  const tamaraVisible = !!gatewayList?.some(g => g.id === 'tamara');
+  const paymobVisible = !!gatewayList?.some(g => g.id === 'paymob');
+
+  const availableMethods = (['mada', 'apple_pay', 'visa', 'cod', 'tabby', 'tamara', 'paymob'] as PaymentMethod[]).filter(m => {
+    if (stripeMethods.includes(m)) return stripeVisible;
+    if (m === 'cod') return codVisible;
+    if (m === 'tabby') return tabbyVisible;
+    if (m === 'tamara') return tamaraVisible;
+    if (m === 'paymob') return paymobVisible;
+    return false;
+  });
+
+  // Keep the selected method/shipping valid as server data arrives.
+  useEffect(() => {
+    if (gatewayList && !availableMethods.includes(paymentMethod) && availableMethods.length > 0) {
+      setPaymentMethod(availableMethods[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gatewayList]);
+
+  useEffect(() => {
+    if (shippingMethods.length > 0 && !shippingMethods.some(s => s.id === shippingProviderId)) {
+      setShippingProviderId(shippingMethods[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shippingMethods]);
+
+  const isStripeMethod = stripeMethods.includes(paymentMethod);
 
  // Payment step state
  const [pendingOrder, setPendingOrder] = useState<any>(null);
@@ -73,8 +120,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
 
 const storeSettings = getStoreSettings ? getStoreSettings() : null;
   const freeShippingThreshold = storeSettings?.free_shipping_threshold ?? 199;
-  const selectedShipping = shippingProviders.find(p => p.id === shippingProviderId) || shippingProviders[0];
-  const shippingCost = totalAmount >= freeShippingThreshold ? 0 : selectedShipping.priceSAR;
+  const selectedShipping = shippingMethods.find(p => p.id === shippingProviderId)
+    || shippingMethods[0]
+    || { id: shippingProviderId, base_fee: 25, cod_supported: true };
+  const shippingCost = totalAmount >= freeShippingThreshold ? 0 : Number(selectedShipping.base_fee ?? 25);
   const codSurcharge = paymentMethod === 'cod' ? (storeSettings?.cod_surcharge ?? 15) : 0;
   const finalPayableTotal = totalAmount + shippingCost + codSurcharge;
 
@@ -106,41 +155,128 @@ const storeSettings = getStoreSettings ? getStoreSettings() : null;
  .catch(() => {});
  }, [user]);
 
- // Return from a 3D-Secure / redirect bank step: the payment succeeded on the
- // Stripe side, so confirm it now (this also creates the order).
- useEffect(() => {
- const pi = new URLSearchParams(window.location.search).get('pi');
- if (!pi) return;
- setPaymentBusy(true);
- setPaymentError('');
- fetch('/api/payments/confirm', {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({ payment_intent_id: pi })
- })
- .then(async res => {
- const data = await res.json();
- if (!res.ok || !data.id) {
- setPendingOrder({});
- setPaymentError(data.error_ar || data.error_en || t('تعذر تأكيد الدفع، أعد المحاولة', 'Could not confirm payment, please retry'));
- return;
- }
- clearCart();
- onNavigate(`/order-confirmation/${data.id}`);
- })
- .catch(() => {
- setPendingOrder({});
- setPaymentError(t('تعذر تأكيد الدفع', 'Could not confirm payment'));
- })
- .finally(() => setPaymentBusy(false));
- // eslint-disable-next-line react-hooks/exhaustive-deps
- }, []);
+  // Return from a 3D-Secure / redirect bank step: the payment succeeded on the
+  // Stripe side, so confirm it now (this also creates the order).
+  // Also handles returns from Tabby / Tamara / Paymob redirect checkouts.
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const pi = params.get('pi');
+  if (pi) {
+  setPaymentBusy(true);
+  setPaymentError('');
+  fetch('/api/payments/confirm', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ payment_intent_id: pi })
+  })
+  .then(async res => {
+  const data = await res.json();
+  if (!res.ok || !data.id) {
+  setPendingOrder({});
+  setPaymentError(data.error_ar || data.error_en || t('تعذر تأكيد الدفع، أعد المحاولة', 'Could not confirm payment, please retry'));
+  return;
+  }
+  clearCart();
+  onNavigate(`/order-confirmation/${data.id}`);
+  })
+  .catch(() => {
+  setPendingOrder({});
+  setPaymentError(t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+  })
+  .finally(() => setPaymentBusy(false));
+  return;
+  }
 
- const handlePlaceOrder = async (e: React.FormEvent) => {
- e.preventDefault();
- if (items.length === 0) return;
- setIsSubmitting(true);
- setPaymentError('');
+  const gateway = params.get('gateway');
+  const result = params.get('result');
+  const cleanUrl = () => {
+  try { window.history.replaceState({}, '', '/checkout'); } catch { /* noop */ }
+  };
+
+  if (gateway === 'paymob' && (params.get('hmac') || params.get('success') !== null)) {
+  // Paymob appends the full transaction payload to the callback URL.
+  const payload: Record<string, string> = {};
+  params.forEach((v, k) => { payload[k] = v; });
+  setPaymentBusy(true);
+  setPaymentError('');
+  fetch('/api/payments/paymob/confirm', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+  })
+  .then(async res => {
+  const data = await res.json();
+  if (!res.ok || !data.id) {
+  setPaymentError(data.error_ar || data.error_en || t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+  return;
+  }
+  try { sessionStorage.removeItem('pending_gateway_payment'); } catch { /* noop */ }
+  clearCart();
+  cleanUrl();
+  onNavigate(`/order-confirmation/${data.id}`);
+  })
+  .catch(() => {
+  setPaymentError(t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+  })
+  .finally(() => setPaymentBusy(false));
+  return;
+  }
+
+  if ((gateway === 'tabby' || gateway === 'tamara')) {
+  if (result === 'cancel' || result === 'failure') {
+  setPaymentError(t('تم إلغاء عملية الدفع، يمكنك المحاولة مرة أخرى', 'Payment was cancelled, you can try again'));
+  cleanUrl();
+  return;
+  }
+  if (result === 'success') {
+  let stored: any = null;
+  try { stored = JSON.parse(sessionStorage.getItem('pending_gateway_payment') || 'null'); } catch { stored = null; }
+  const sessionId = stored?.session_id || params.get('payment_id') || params.get('paymentId') || params.get('order_id') || params.get('orderId') || '';
+  if (!stored || stored.gateway !== gateway || !sessionId) {
+  setPaymentError(t('تعذر العثور على جلسة الدفع، أعد المحاولة', 'Payment session not found, please retry'));
+  cleanUrl();
+  return;
+  }
+  setPaymentBusy(true);
+  setPaymentError('');
+  fetch(`/api/payments/${gateway}/confirm`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ session_id: sessionId })
+  })
+  .then(async res => {
+  const data = await res.json();
+  if (!res.ok || !data.id) {
+  setPaymentError(data.error_ar || data.error_en || t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+  return;
+  }
+  try { sessionStorage.removeItem('pending_gateway_payment'); } catch { /* noop */ }
+  clearCart();
+  cleanUrl();
+  onNavigate(`/order-confirmation/${data.id}`);
+  })
+  .catch(() => {
+  setPaymentError(t('تعذر تأكيد الدفع', 'Could not confirm payment'));
+  })
+  .finally(() => setPaymentBusy(false));
+  return;
+  }
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (items.length === 0) return;
+  setIsSubmitting(true);
+  setPaymentError('');
+
+  if (paymentMethod === 'cod' && selectedShipping && (selectedShipping as any).cod_supported === false) {
+  setIsSubmitting(false);
+  setPaymentError(t('شركة الشحن المختارة لا تدعم الدفع عند الاستلام، اختر شركة أخرى أو طريقة دفع مختلفة', 'The selected carrier does not support cash on delivery'));
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* noop */ }
+  return;
+  }
 
  const orderPayload = {
  user_id: user?.id || undefined,
@@ -240,6 +376,38 @@ try {
         setPaymentError(t('تعذر تجهيز عملية الدفع', 'Could not prepare payment'));
       }
       setPaymentBusy(false);
+    } else if (paymentMethod === 'tabby' || paymentMethod === 'tamara' || paymentMethod === 'paymob') {
+      // Redirect gateways (Tabby / Tamara / Paymob): create a server-side
+      // session, then redirect the customer to the provider checkout.
+      // The order is created ONLY after server-side verification on return.
+      const endpoint =
+        paymentMethod === 'paymob'
+          ? '/api/payments/paymob/intention'
+          : `/api/payments/${paymentMethod}/create`;
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: orderPayload })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.checkout_url) {
+          setIsSubmitting(false);
+          setPaymentError(data.error_ar || data.error_en || t('تعذر بدء الدفع', 'Could not start payment'));
+          try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* noop */ }
+          return;
+        }
+        try {
+          sessionStorage.setItem('pending_gateway_payment', JSON.stringify({ gateway: paymentMethod, session_id: data.session_id }));
+        } catch { /* storage unavailable */ }
+        window.location.href = data.checkout_url;
+        return;
+      } catch (err: any) {
+        console.error(`[${paymentMethod}] start-payment threw:`, err);
+        setIsSubmitting(false);
+        setPaymentError(err?.message || t('تعذر بدء الدفع', 'Could not start payment'));
+        return;
+      }
     } else {
   // Cash on delivery: create the order immediately (payment pending,
   // collected on delivery).
@@ -513,41 +681,48 @@ const handlePaymentCancel = () => {
  <span>{t('3. شركات الشحن والتوصيل', '3. Courier & Express Delivery')}</span>
  </h3>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- {shippingProviders.map(provider => {
- const selected = shippingProviderId === provider.id;
- const isFree = totalAmount >= 199;
- return (
- <div
- key={provider.id}
- onClick={() => setShippingProviderId(provider.id)}
- className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between ${selected
- ? 'bg-[#0E5257]/20 border-[#6CC6C9]'
- : 'bg-[#FFFFFF] border-[#E8F2F2] hover:border-[#0E5257]'
- }`}
- >
- <div className="space-y-1">
- <span className="font-bold text-xs text-[#4A6869] block">
- {language === 'ar' ? provider.name_ar : provider.name_en}
- {provider.id === 'smsa' && (
- <span className="mr-1.5 inline-block text-[9px] bg-[#6CC6C9]/20 text-[#6CC6C9] px-1.5 py-0.5 rounded font-extrabold align-middle">
- {t('مُوصى به', 'RECOMMENDED')}
- </span>
- )}
- </span>
- <span className="text-[10px] text-[#6B8C8E]">
- {language === 'ar' ? provider.estimatedDays_ar : provider.estimatedDays_en}
- </span>
- </div>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  {shippingMethods.length === 0 ? (
+    <div className="col-span-full text-center text-xs text-[#6B8C8E] py-4">
+      {t('جاري تحميل شركات الشحن...', 'Loading shipping methods...')}
+    </div>
+  ) : shippingMethods.map(provider => {
+  const selected = shippingProviderId === provider.id;
+  const isFree = totalAmount >= freeShippingThreshold;
+  return (
+  <div
+  key={provider.id}
+  onClick={() => setShippingProviderId(provider.id)}
+  className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between ${selected
+  ? 'bg-[#0E5257]/20 border-[#6CC6C9]'
+  : 'bg-[#FFFFFF] border-[#E8F2F2] hover:border-[#0E5257]'
+  }`}
+  >
+  <div className="space-y-1">
+  <span className="font-bold text-xs text-[#4A6869] block">
+  {language === 'ar' ? provider.name_ar : provider.name_en}
+  {provider.id === 'smsa' && (
+  <span className="mr-1.5 inline-block text-[9px] bg-[#6CC6C9]/20 text-[#6CC6C9] px-1.5 py-0.5 rounded font-extrabold align-middle">
+  {t('مُوصى به', 'RECOMMENDED')}
+  </span>
+  )}
+  </span>
+  <span className="text-[10px] text-[#6B8C8E]">
+  {language === 'ar' ? provider.description_ar : provider.description_en}
+  {!provider.cod_supported && paymentMethod === 'cod' && (
+  <span className="block text-red-400 font-bold">{t('لا تدعم الدفع عند الاستلام', 'Does not support COD')}</span>
+  )}
+  </span>
+  </div>
 
- <span className="font-extrabold text-xs text-[#6CC6C9]">
- {isFree ? t('مجاناً', 'FREE') : formatPrice(provider.priceSAR)}
- </span>
- </div>
- );
- })}
- </div>
- </div>
+  <span className="font-extrabold text-xs text-[#6CC6C9]">
+  {isFree ? t('مجاناً', 'FREE') : formatPrice(Number(provider.base_fee) || 0)}
+  </span>
+  </div>
+  );
+  })}
+  </div>
+  </div>
 
  {/* Step 4: Payment Method */}
  <div className="p-6 rounded-3xl bg-[#F0FAFA] border border-[#E8F2F2] space-y-4">
@@ -556,55 +731,74 @@ const handlePaymentCancel = () => {
  <span>{t('4. طريقة الدفع', '4. Payment Option')}</span>
  </h3>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- {[
- { id: 'mada', label_ar: 'بطاقة مدى MADA', label_en: 'Mada Debit Card', badge: 'MADA', imgs: ['https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/mada.svg'] },
- { id: 'apple_pay', label_ar: 'Apple Pay (عبر Stripe)', label_en: 'Apple Pay (via Stripe)', badge: 'Apple Pay', imgs: ['https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/apple_pay.svg'] },
- { id: 'visa', label_ar: 'فيزا / ماستركارد (عبر Stripe)', label_en: 'Visa / Mastercard (via Stripe)', badge: 'VISA', imgs: [
- 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/visa.svg',
- 'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/master.svg'
- ] },
- { id: 'cod', label_ar: 'الدفع عند الاستلام (+15 ﷼)', label_en: 'Cash on Delivery', badge: 'COD', imgs: [] }
- ].map(p => {
- const selected = paymentMethod === p.id;
- return (
- <div
- key={p.id}
- onClick={() => setPaymentMethod(p.id as PaymentMethod)}
- className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between ${selected
- ? 'bg-[#0E5257]/20 border-[#6CC6C9]'
- : 'bg-[#FFFFFF] border-[#E8F2F2] hover:border-[#0E5257]'
- }`}
- >
- <span className="font-bold text-xs text-[#4A6869]">
- {language === 'ar' ? p.label_ar : p.label_en}
- </span>
- <span className="flex items-center gap-1.5">
- {p.imgs.length > 0 ? p.imgs.map(src => (
- <img
- key={src}
- src={src}
- alt={p.badge}
- className="h-5 w-auto"
- onError={e => {
- const t = e.currentTarget;
- const s = document.createElement('span');
- s.className = 'text-[10px] font-extrabold bg-[#E8F2F2] px-2 py-0.5 rounded text-[#6CC6C9]';
- s.textContent = p.badge;
- t.parentNode?.replaceChild(s, t);
- }}
- />
- )) : (
- <span className="text-[10px] font-extrabold bg-[#E8F2F2] px-2 py-0.5 rounded text-[#6CC6C9]">
- {p.badge}
- </span>
- )}
- </span>
- </div>
- );
- })}
- </div>
- </div>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  {gatewayList === null ? (
+  <div className="col-span-full text-center text-xs text-[#6B8C8E] py-4">
+  {t('جاري تحميل طرق الدفع...', 'Loading payment methods...')}
+  </div>
+  ) : availableMethods.length === 0 ? (
+  <div className="col-span-full text-center text-xs text-red-400 py-4">
+  {t('لا توجد طرق دفع مفعّلة حالياً', 'No payment methods are currently enabled')}
+  </div>
+  ) : availableMethods.map(id => {
+  const meta: Record<string, { label_ar: string; label_en: string; badge: string; imgs: string[]; hint_ar: string; hint_en: string }> = {
+  mada: { label_ar: 'بطاقة مدى MADA', label_en: 'Mada Debit Card', badge: 'MADA', imgs: ['https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/mada.svg'], hint_ar: 'دفع فوري آمن', hint_en: 'Secure instant payment' },
+  apple_pay: { label_ar: 'Apple Pay', label_en: 'Apple Pay', badge: 'Apple Pay', imgs: ['https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/apple_pay.svg'], hint_ar: 'عبر Stripe', hint_en: 'via Stripe' },
+  visa: { label_ar: 'فيزا / ماستركارد', label_en: 'Visa / Mastercard', badge: 'VISA', imgs: [
+  'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/visa.svg',
+  'https://raw.githubusercontent.com/activemerchant/payment_icons/master/app/assets/images/payment_icons/master.svg'
+  ], hint_ar: 'عبر Stripe', hint_en: 'via Stripe' },
+  cod: { label_ar: `الدفع عند الاستلام (+${codSurcharge} ﷼)`, label_en: 'Cash on Delivery', badge: 'COD', imgs: [], hint_ar: 'ادفع عند وصول طلبك', hint_en: 'Pay when your order arrives' },
+  tabby: { label_ar: 'تابي — قسّمها على 4', label_en: 'Tabby — Split in 4', badge: 'tabby', imgs: [], hint_ar: 'بدون فوائد', hint_en: 'No interest' },
+  tamara: { label_ar: 'تمارا — قسّط فاتورتك', label_en: 'Tamara — Split it', badge: 'tamara', imgs: [], hint_ar: 'دفع مرن متوافق مع الشريعة', hint_en: 'Flexible Sharia-compliant payments' },
+  paymob: { label_ar: 'بطاقة عبر Paymob', label_en: 'Card via Paymob', badge: 'Paymob', imgs: [], hint_ar: 'مدى والبطاقات والمحافظ', hint_en: 'Cards, mada & wallets' }
+  };
+  const p = meta[id];
+  if (!p) return null;
+  const selected = paymentMethod === id;
+  return (
+  <div
+  key={id}
+  onClick={() => setPaymentMethod(id as PaymentMethod)}
+  className={`p-4 rounded-2xl border transition cursor-pointer flex items-center justify-between ${selected
+  ? 'bg-[#0E5257]/20 border-[#6CC6C9]'
+  : 'bg-[#FFFFFF] border-[#E8F2F2] hover:border-[#0E5257]'
+  }`}
+  >
+  <span>
+  <span className="font-bold text-xs text-[#4A6869] block">
+  {language === 'ar' ? p.label_ar : p.label_en}
+  </span>
+  <span className="text-[10px] text-[#6B8C8E] block">
+  {language === 'ar' ? p.hint_ar : p.hint_en}
+  </span>
+  </span>
+  <span className="flex items-center gap-1.5">
+  {p.imgs.length > 0 ? p.imgs.map(src => (
+  <img
+  key={src}
+  src={src}
+  alt={p.badge}
+  className="h-5 w-auto"
+  onError={e => {
+  const t = e.currentTarget;
+  const s = document.createElement('span');
+  s.className = 'text-[10px] font-extrabold bg-[#E8F2F2] px-2 py-0.5 rounded text-[#6CC6C9]';
+  s.textContent = p.badge;
+  t.parentNode?.replaceChild(s, t);
+  }}
+  />
+  )) : (
+  <span className="text-[10px] font-extrabold bg-[#E8F2F2] px-2 py-0.5 rounded text-[#6CC6C9]">
+  {p.badge}
+  </span>
+  )}
+  </span>
+  </div>
+  );
+  })}
+  </div>
+  </div>
 
  </div>
 

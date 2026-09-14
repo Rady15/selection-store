@@ -1,7 +1,7 @@
 import { db } from '../database/store.js';
 import type { Address, Order, OrderItem, PaymentMethod, ShippingMethod } from '../../src/types';
 
-const SHIPPING_PRICES: Record<string, number> = {
+const FALLBACK_SHIPPING_PRICES: Record<string, number> = {
   aramex: 28,
   smsa: 25,
   fastlo: 22,
@@ -39,11 +39,15 @@ export function buildTrustedOrder(input: any, user: any): Omit<Order, 'id' | 'or
   if (!Array.isArray(input.items) || input.items.length < 1 || input.items.length > 50) throw new Error('Invalid order items');
 
   const paymentMethod = cleanString(input.payment_method, 30) as PaymentMethod;
-  const allowedPayments: PaymentMethod[] = ['mada', 'apple_pay', 'visa', 'cod'];
+  const allowedPayments: PaymentMethod[] = ['mada', 'apple_pay', 'visa', 'cod', 'tabby', 'tamara', 'paymob'];
   if (!allowedPayments.includes(paymentMethod)) throw new Error('Unsupported payment method');
 
   const shippingMethod = cleanString(input.shipping_method, 30) as ShippingMethod;
-  if (!(shippingMethod in SHIPPING_PRICES)) throw new Error('Unsupported shipping method');
+  if (!db.isShippingMethodEnabled(shippingMethod)) throw new Error('Unsupported shipping method');
+  const SHIPPING_PRICES: Record<string, number> = {
+    ...FALLBACK_SHIPPING_PRICES,
+    [shippingMethod]: db.getShippingFee(shippingMethod)
+  };
 
   const items: OrderItem[] = [];
   let subtotal = 0;
